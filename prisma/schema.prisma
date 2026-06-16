@@ -1,0 +1,41 @@
+// D&D Campaign Manager — schema.
+// Single source of truth for data: docs/program/DATA_MODEL.md
+// Foundation (Sprint 0) owns Campaign + PlayerSession. Evolve via additive migrations only.
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Campaign {
+  id             String          @id @default(cuid())
+  name           String
+  inviteCode     String          @unique
+  dmSessionToken String // secret — DM reconnect identity, never broadcast
+  status         String          @default("active") // "active" | "closed" (SQLite has no enum)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  sessions       PlayerSession[]
+
+  @@index([inviteCode])
+}
+
+model PlayerSession {
+  id           String   @id @default(cuid())
+  campaignId   String
+  campaign     Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  displayName  String
+  role         String // "dm" | "player"
+  sessionToken String // secret — reconnect identity, never broadcast
+  characterId  String? // RESERVED for Sprint 2 (Characters); nullable, no FK relation yet
+  isConnected  Boolean  @default(true)
+  connectedAt  DateTime @default(now())
+  lastSeenAt   DateTime @default(now())
+
+  @@unique([campaignId, displayName]) // names unique WITHIN a campaign, not globally
+  @@index([campaignId])
+}

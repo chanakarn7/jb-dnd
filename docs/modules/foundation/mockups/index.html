@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>D&D Campaign Manager — Foundation (Prototype)</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          bg: '#0B0E14', surface: '#151A23', 'surface-raised': '#1E2530',
+          border: '#2A323F', text: '#F1F5F9', muted: '#94A3B8', faint: '#64748B',
+          accent: '#D9A441', 'accent-hover': '#E8B95C', arcane: '#8B5CF6',
+          danger: '#EF4444', success: '#22C55E', warning: '#F59E0B',
+        },
+        fontFamily: {
+          display: ['Cinzel', 'serif'],
+          sans: ['Inter', 'system-ui', 'sans-serif'],
+          mono: ['JetBrains Mono', 'monospace'],
+        },
+        borderRadius: { sm: '6px', md: '10px', lg: '16px' },
+      }
+    }
+  }
+</script>
+<style>
+  :root { color-scheme: dark; }
+  body { background:#0B0E14; }
+  .tnum { font-variant-numeric: tabular-nums; }
+  *:focus-visible { outline: 2px solid #D9A441; outline-offset: 2px; border-radius: 6px; }
+  .screen { display:none; }
+  .screen.active { display:block; animation: fade .18s ease-out; }
+  @keyframes fade { from{opacity:0; transform:translateY(4px)} to{opacity:1; transform:none} }
+  @keyframes rowflash { from{background:rgba(217,164,65,.18)} to{background:transparent} }
+  .row-flash { animation: rowflash 1.2s ease-out; }
+  @media (prefers-reduced-motion: reduce) {
+    .screen.active, .row-flash { animation: none !important; }
+  }
+  .toast-in { animation: toastin .22s ease-out; }
+  @keyframes toastin { from{opacity:0; transform:translateY(8px)} to{opacity:1; transform:none} }
+</style>
+</head>
+<body class="font-sans text-text min-h-dvh">
+
+<!-- ===== Global chrome: connection pill ===== -->
+<div class="fixed top-3 right-3 z-40 flex items-center gap-2">
+  <button id="connPill" onclick="cycleConn()" title="Click to demo states"
+    class="flex items-center gap-1.5 rounded-md border border-border bg-surface px-3 py-1.5 text-sm hover:bg-surface-raised">
+    <i data-lucide="wifi" class="w-4 h-4 text-success"></i>
+    <span id="connLabel" class="text-success">Connected</span>
+  </button>
+  <button onclick="resetDemo()" title="Restart prototype"
+    class="rounded-md border border-border bg-surface px-2 py-1.5 text-muted hover:text-text hover:bg-surface-raised">
+    <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+  </button>
+</div>
+
+<!-- ===================== 1. LANDING ===================== -->
+<section id="screen-landing" class="screen active">
+  <main class="min-h-dvh grid place-items-center p-6">
+    <div class="w-full max-w-2xl text-center space-y-8">
+      <div class="space-y-2">
+        <h1 class="font-display text-4xl sm:text-5xl tracking-wide">D&amp;D Campaign Manager</h1>
+        <p class="text-muted">Run your table, live — on this Wi-Fi, no account needed.</p>
+      </div>
+      <div class="grid sm:grid-cols-2 gap-4 text-left">
+        <button onclick="go('create')"
+          class="rounded-md border-2 border-accent bg-surface p-6 hover:bg-surface-raised transition">
+          <i data-lucide="crown" class="w-7 h-7 text-accent"></i>
+          <span class="block mt-3 text-lg font-semibold">Create Campaign</span>
+          <span class="text-muted text-sm">I'm the Dungeon Master</span>
+        </button>
+        <button onclick="go('join')"
+          class="rounded-md border border-border bg-surface p-6 hover:bg-surface-raised transition">
+          <i data-lucide="users" class="w-7 h-7 text-arcane"></i>
+          <span class="block mt-3 text-lg font-semibold">Join Campaign</span>
+          <span class="text-muted text-sm">I'm a Player</span>
+        </button>
+      </div>
+      <p class="text-faint text-xs">Sprint 0 · Foundation prototype — mock data, no backend.</p>
+    </div>
+  </main>
+</section>
+
+<!-- ===================== 2. CREATE ===================== -->
+<section id="screen-create" class="screen">
+  <main class="min-h-dvh grid place-items-center p-6">
+    <div class="w-full max-w-md">
+      <button onclick="go('landing')" class="text-muted hover:text-text text-sm mb-4 flex items-center gap-1">
+        <i data-lucide="arrow-left" class="w-4 h-4"></i> Back</button>
+      <div class="rounded-lg border border-border bg-surface p-6 space-y-5">
+        <h2 class="text-2xl font-semibold flex items-center gap-2"><i data-lucide="crown" class="w-5 h-5 text-accent"></i> Create Campaign</h2>
+        <div>
+          <label class="block text-sm font-medium mb-1" for="c-name">Campaign name <span class="text-danger">*</span></label>
+          <input id="c-name" maxlength="60" value="Curse of the Ember Crown"
+            class="w-full rounded-md bg-bg border border-border px-4 py-3 text-base" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-1" for="c-dm">Your DM name <span class="text-danger">*</span></label>
+          <input id="c-dm" maxlength="24" value="Mara"
+            class="w-full rounded-md bg-bg border border-border px-4 py-3 text-base" />
+        </div>
+        <button id="c-submit" onclick="submitCreate()"
+          class="w-full rounded-md bg-accent text-bg font-semibold py-3 hover:bg-accent-hover transition flex items-center justify-center gap-2">
+          <span id="c-btn-label">Create &amp; Get Invite Code</span>
+        </button>
+      </div>
+    </div>
+  </main>
+</section>
+
+<!-- ===================== 3. JOIN ===================== -->
+<section id="screen-join" class="screen">
+  <main class="min-h-dvh grid place-items-center p-6">
+    <div class="w-full max-w-md">
+      <button onclick="go('landing')" class="text-muted hover:text-text text-sm mb-4 flex items-center gap-1">
+        <i data-lucide="arrow-left" class="w-4 h-4"></i> Back</button>
+      <div class="rounded-lg border border-border bg-surface p-6 space-y-5">
+        <h2 class="text-2xl font-semibold flex items-center gap-2"><i data-lucide="users" class="w-5 h-5 text-arcane"></i> Join Campaign</h2>
+
+        <div>
+          <label class="block text-sm font-medium mb-1" for="j-code">Invite code <span class="text-danger">*</span></label>
+          <input id="j-code" autocapitalize="characters" inputmode="text" placeholder="K7Q-M2P"
+            oninput="formatCode(this)" aria-describedby="j-code-err"
+            class="w-full font-mono text-xl tnum tracking-[0.2em] uppercase rounded-md bg-bg border border-border px-4 py-3" />
+          <p id="j-code-err" class="mt-1 text-sm text-danger items-center gap-1 hidden flex">
+            <i data-lucide="alert-circle" class="w-3.5 h-3.5"></i><span></span></p>
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-1" for="j-name">Display name <span class="text-danger">*</span></label>
+          <input id="j-name" maxlength="24" placeholder="Thorin" aria-describedby="j-name-err"
+            class="w-full rounded-md bg-bg border border-border px-4 py-3 text-base" />
+          <p id="j-name-err" class="mt-1 text-sm text-warning items-center gap-1 hidden flex">
+            <i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i><span></span></p>
+        </div>
+
+        <button id="j-submit" onclick="submitJoin()"
+          class="w-full rounded-md bg-accent text-bg font-semibold py-3 hover:bg-accent-hover transition flex items-center justify-center gap-2">
+          <span id="j-btn-label">Join Table</span>
+        </button>
+
+        <div class="border-t border-border pt-3 text-xs text-faint space-y-1">
+          <p class="text-muted">Demo error states:</p>
+          <div class="flex flex-wrap gap-2">
+            <button onclick="demoJoinError('bad')" class="rounded border border-border px-2 py-1 hover:bg-surface-raised">Bad code</button>
+            <button onclick="demoJoinError('dup')" class="rounded border border-border px-2 py-1 hover:bg-surface-raised">Duplicate name</button>
+            <button onclick="demoJoinError('closed')" class="rounded border border-border px-2 py-1 hover:bg-surface-raised">Closed campaign</button>
+          </div>
+          <p class="text-faint pt-1">Tip: valid demo code is <span class="font-mono text-muted">K7Q-M2P</span>, taken name is <span class="text-muted">Mara</span>.</p>
+        </div>
+      </div>
+    </div>
+  </main>
+</section>
+
+<!-- ===================== 4 & 5. LOBBY (DM + Player share component) ===================== -->
+<section id="screen-lobby" class="screen">
+  <main class="min-h-dvh max-w-5xl mx-auto p-6 space-y-8">
+    <button onclick="go('landing')" class="text-muted hover:text-text text-sm flex items-center gap-1">
+      <i data-lucide="arrow-left" class="w-4 h-4"></i> Leave</button>
+
+    <!-- header: campaign name (editable for DM) -->
+    <div class="flex items-center gap-3">
+      <h2 id="lob-name" class="text-2xl font-semibold">Curse of the Ember Crown</h2>
+      <button id="lob-edit" onclick="editName()" class="text-muted hover:text-accent hidden"
+        title="Rename campaign"><i data-lucide="pencil" class="w-4 h-4"></i></button>
+      <span id="lob-rolechip" class="ml-auto text-xs rounded-full px-2 py-1 border"></span>
+    </div>
+
+    <!-- DM-only invite hero -->
+    <section id="invite-hero" class="rounded-lg bg-surface-raised border border-border p-6 text-center hidden">
+      <p class="text-muted text-sm mb-2">Invite code — read it out to your table</p>
+      <p id="hero-code" class="font-mono tnum text-5xl sm:text-6xl tracking-[0.15em] text-accent select-all">K7Q-M2P</p>
+      <div class="mt-4 flex flex-wrap items-center justify-center gap-4 text-sm">
+        <button onclick="copy('K7Q-M2P','Code copied')" class="inline-flex items-center gap-1 text-muted hover:text-text rounded px-2 py-1">
+          <i data-lucide="copy" class="w-4 h-4"></i> Copy code</button>
+        <span class="text-faint">·</span>
+        <span class="inline-flex items-center gap-1 text-muted">
+          <i data-lucide="link" class="w-4 h-4"></i>
+          <span class="font-mono">http://192.168.1.42:3000</span>
+          <button onclick="copy('http://192.168.1.42:3000','Link copied')" class="hover:text-text"><i data-lucide="copy" class="w-3.5 h-3.5"></i></button>
+        </span>
+      </div>
+      <p class="text-faint text-xs mt-2">Players join on this Wi-Fi.</p>
+    </section>
+
+    <!-- roster -->
+    <section>
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="text-lg font-semibold flex items-center gap-2"><i data-lucide="users-round" class="w-5 h-5 text-muted"></i> Party</h3>
+        <span id="roster-count" class="text-sm text-muted tnum"></span>
+      </div>
+      <ul id="roster" class="space-y-2"></ul>
+
+      <!-- player waiting empty state -->
+      <div id="waiting" class="hidden mt-6 rounded-lg border border-dashed border-border bg-surface p-8 text-center">
+        <i data-lucide="hourglass" class="w-7 h-7 text-muted mx-auto"></i>
+        <p class="mt-3 text-muted">You're in. Waiting for the DM to start the session.</p>
+      </div>
+    </section>
+  </main>
+</section>
+
+<!-- ===== Confirm dialog ===== -->
+<div id="confirm" class="fixed inset-0 z-50 hidden">
+  <div class="absolute inset-0 bg-black/50" onclick="closeConfirm()"></div>
+  <div role="dialog" aria-modal="true" class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-sm rounded-lg border border-border bg-surface p-6">
+    <h4 class="text-lg font-semibold">Remove participant?</h4>
+    <p id="confirm-msg" class="text-muted text-sm mt-2"></p>
+    <div class="mt-5 flex justify-end gap-3">
+      <button onclick="closeConfirm()" class="rounded-md border border-border px-4 py-2 text-sm hover:bg-surface-raised">Cancel</button>
+      <button id="confirm-ok" class="rounded-md bg-danger text-white px-4 py-2 text-sm font-semibold hover:opacity-90">Remove</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Toaster ===== -->
+<div id="toaster" aria-live="polite" class="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 space-y-2 w-[90%] max-w-sm"></div>
+
+<script>
+// ---------- shared mock state (shapes mirror SA_BLUEPRINT) ----------
+const CODE = 'K7Q-M2P';
+let me = null; // {role, name}
+let state = {
+  name: 'Curse of the Ember Crown',
+  participants: [
+    { sessionId:'s1', displayName:'Mara',   role:'dm',     isConnected:true },
+    { sessionId:'s2', displayName:'Thorin', role:'player', isConnected:true },
+    { sessionId:'s3', displayName:'Lyra',   role:'player', isConnected:true },
+  ],
+};
+let timers = [];
+
+// ---------- navigation ----------
+function go(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-'+name).classList.add('active');
+  window.scrollTo(0,0);
+  lucide.createIcons();
+}
+
+// ---------- create flow ----------
+function submitCreate(){
+  const name = document.getElementById('c-name').value.trim();
+  const dm = document.getElementById('c-dm').value.trim();
+  if(!name || !dm){ toast('Fill in both fields','danger'); return; }
+  const btn = document.getElementById('c-submit'); const lbl = document.getElementById('c-btn-label');
+  btn.disabled = true; lbl.textContent = 'Creating…';
+  btn.insertAdjacentHTML('afterbegin','<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i>'); lucide.createIcons();
+  setTimeout(()=>{
+    me = { role:'dm', name:dm };
+    state.name = name;
+    state.participants = [{ sessionId:'s1', displayName:dm, role:'dm', isConnected:true }];
+    btn.disabled=false; lbl.textContent='Create & Get Invite Code'; btn.querySelector('svg')?.remove();
+    openLobby();
+    toast('Campaign created — invite code ready','success');
+    simulatePlayersJoining();
+  }, 700);
+}
+
+// ---------- join flow ----------
+function formatCode(el){
+  let v = el.value.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6);
+  el.value = v.length>3 ? v.slice(0,3)+'-'+v.slice(3) : v;
+}
+function clearJoinErrors(){
+  document.getElementById('j-code-err').classList.add('hidden');
+  document.getElementById('j-name-err').classList.add('hidden');
+}
+function showErr(id,msg){ const p=document.getElementById(id); p.classList.remove('hidden'); p.querySelector('span').textContent=msg; }
+function demoJoinError(kind){
+  clearJoinErrors();
+  if(kind==='bad') showErr('j-code-err','No campaign found for that code.');
+  if(kind==='closed') showErr('j-code-err','This campaign has ended.');
+  if(kind==='dup') showErr('j-name-err',"That name's taken in this campaign — pick another.");
+}
+function submitJoin(){
+  clearJoinErrors();
+  const code = document.getElementById('j-code').value.trim().toUpperCase();
+  const name = document.getElementById('j-name').value.trim();
+  let bad=false;
+  if(code !== CODE){ showErr('j-code-err','No campaign found for that code.'); bad=true; }
+  if(!name){ showErr('j-name-err','Enter a display name.'); bad=true; }
+  else if(state.participants.some(p=>p.displayName.toLowerCase()===name.toLowerCase())){
+    showErr('j-name-err',"That name's taken in this campaign — pick another."); bad=true;
+  }
+  if(bad) return;
+  const btn=document.getElementById('j-submit'), lbl=document.getElementById('j-btn-label');
+  btn.disabled=true; lbl.textContent='Joining…';
+  btn.insertAdjacentHTML('afterbegin','<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i>'); lucide.createIcons();
+  setTimeout(()=>{
+    me={ role:'player', name };
+    state.participants.push({ sessionId:'s'+Date.now(), displayName:name, role:'player', isConnected:true });
+    btn.disabled=false; lbl.textContent='Join Table'; btn.querySelector('svg')?.remove();
+    openLobby();
+    toast('Joined the table','success');
+  }, 700);
+}
+
+// ---------- lobby render ----------
+function openLobby(){
+  const isDM = me.role==='dm';
+  document.getElementById('lob-name').textContent = state.name;
+  document.getElementById('invite-hero').classList.toggle('hidden', !isDM);
+  document.getElementById('lob-edit').classList.toggle('hidden', !isDM);
+  document.getElementById('hero-code').textContent = CODE;
+  const chip = document.getElementById('lob-rolechip');
+  chip.textContent = isDM ? 'Dungeon Master' : 'Player';
+  chip.className = 'ml-auto text-xs rounded-full px-2 py-1 border ' +
+    (isDM ? 'border-accent text-accent' : 'border-arcane text-arcane');
+  renderRoster();
+  go('lobby');
+}
+function renderRoster(flashId){
+  const ul=document.getElementById('roster'); ul.innerHTML='';
+  const isDM = me && me.role==='dm';
+  state.participants.forEach(p=>{
+    const online = p.isConnected;
+    const li=document.createElement('li');
+    li.className='flex items-center gap-3 rounded-md border border-border bg-surface px-4 py-3 '+(flashId===p.sessionId?'row-flash':'');
+    li.innerHTML = `
+      <span class="flex items-center gap-1.5 text-xs ${online?'text-success':'text-faint'}">
+        <span class="inline-block w-2.5 h-2.5 rounded-full ${online?'bg-success':'border border-faint'}"></span>
+        ${online?'online':'offline'}
+      </span>
+      <i data-lucide="${p.role==='dm'?'crown':'user'}" class="w-4 h-4 ${p.role==='dm'?'text-accent':'text-muted'}"></i>
+      <span class="font-medium">${p.displayName}${me&&p.displayName===me.name?' <span class=\'text-faint text-xs\'>(you)</span>':''}</span>
+      <span class="text-xs rounded-full px-2 py-0.5 border ${p.role==='dm'?'border-accent/40 text-accent':'border-arcane/40 text-arcane'}">${p.role==='dm'?'DM':'Player'}</span>
+      ${isDM && p.role!=='dm' ? `<button onclick="askRemove('${p.sessionId}','${p.displayName}')" class="ml-auto text-muted hover:text-danger" title="Remove"><i data-lucide="user-minus" class="w-4 h-4"></i></button>`:''}
+    `;
+    ul.appendChild(li);
+  });
+  document.getElementById('roster-count').textContent = state.participants.filter(p=>p.isConnected).length+' online · '+state.participants.length+' total';
+  // player waiting empty state: only DM present besides self
+  const others = state.participants.filter(p=>!(me&&p.displayName===me.name));
+  const onlyDM = others.every(p=>p.role==='dm');
+  document.getElementById('waiting').classList.toggle('hidden', !(me&&me.role==='player'&&onlyDM));
+  lucide.createIcons();
+}
+
+// ---------- DM actions ----------
+function editName(){
+  const cur=state.name;
+  const next=prompt('Rename campaign:', cur);
+  if(next && next.trim()){ state.name=next.trim(); document.getElementById('lob-name').textContent=state.name; toast('Campaign renamed','success'); }
+}
+let pendingRemove=null;
+function askRemove(id,name){
+  pendingRemove=id;
+  document.getElementById('confirm-msg').textContent = `Remove ${name} from the campaign? They'll be returned to the landing page.`;
+  document.getElementById('confirm').classList.remove('hidden');
+  document.getElementById('confirm-ok').onclick=()=>{
+    state.participants=state.participants.filter(p=>p.sessionId!==id);
+    closeConfirm(); renderRoster(); toast(`${name} removed`,'warning');
+  };
+}
+function closeConfirm(){ document.getElementById('confirm').classList.add('hidden'); pendingRemove=null; }
+
+// ---------- simulated realtime ----------
+function simulatePlayersJoining(){
+  timers.push(setTimeout(()=>{
+    state.participants.push({sessionId:'s2',displayName:'Thorin',role:'player',isConnected:true});
+    renderRoster('s2'); toast('Thorin joined the table','success');
+  }, 2600));
+  timers.push(setTimeout(()=>{
+    state.participants.push({sessionId:'s3',displayName:'Lyra',role:'player',isConnected:true});
+    renderRoster('s3'); toast('Lyra joined the table','success');
+  }, 5200));
+  timers.push(setTimeout(()=>{
+    const t=state.participants.find(p=>p.displayName==='Thorin'); if(t){ t.isConnected=false; renderRoster('s2'); toast('Thorin went offline','warning'); }
+  }, 8200));
+}
+
+// ---------- connection pill ----------
+const connStates=[
+  {icon:'wifi',label:'Connected',cls:'text-success'},
+  {icon:'loader-2',label:'Reconnecting…',cls:'text-warning',spin:true},
+  {icon:'wifi-off',label:'Offline',cls:'text-danger'},
+];
+let connIdx=0;
+function cycleConn(){
+  connIdx=(connIdx+1)%connStates.length;
+  const s=connStates[connIdx];
+  const pill=document.getElementById('connPill');
+  pill.innerHTML=`<i data-lucide="${s.icon}" class="w-4 h-4 ${s.cls} ${s.spin?'animate-spin':''}"></i><span class="${s.cls}">${s.label}</span>`;
+  lucide.createIcons();
+}
+
+// ---------- toasts / copy ----------
+function toast(msg,kind='success'){
+  const colors={success:'border-success/40',warning:'border-warning/40',danger:'border-danger/40'};
+  const icons={success:'check-circle',warning:'alert-triangle',danger:'alert-circle'};
+  const t=document.createElement('div');
+  t.className=`toast-in flex items-center gap-2 rounded-md border ${colors[kind]} bg-surface-raised px-4 py-3 text-sm shadow-lg`;
+  t.innerHTML=`<i data-lucide="${icons[kind]}" class="w-4 h-4 text-${kind}"></i><span>${msg}</span>`;
+  document.getElementById('toaster').appendChild(t);
+  lucide.createIcons();
+  setTimeout(()=>t.remove(),3800);
+}
+function copy(txt,msg){ navigator.clipboard?.writeText(txt).catch(()=>{}); toast(msg,'success'); }
+
+function resetDemo(){
+  timers.forEach(clearTimeout); timers=[]; me=null;
+  state={ name:'Curse of the Ember Crown', participants:[
+    {sessionId:'s1',displayName:'Mara',role:'dm',isConnected:true},
+    {sessionId:'s2',displayName:'Thorin',role:'player',isConnected:true},
+    {sessionId:'s3',displayName:'Lyra',role:'player',isConnected:true},
+  ]};
+  document.getElementById('j-code').value=''; document.getElementById('j-name').value='';
+  clearJoinErrors(); go('landing');
+}
+
+lucide.createIcons();
+</script>
+</body>
+</html>
