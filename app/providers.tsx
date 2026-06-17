@@ -153,7 +153,9 @@ export function CampaignProvider({ children }: { children: React.ReactNode }) {
       new Promise((resolve) => {
         const s = ensureSocket();
         type AnyAck = SnapshotAck | OkAck | ErrorAck;
-        const emit = s.emit as unknown as (
+        // NOTE: bind to `s` — extracting `s.emit` into a variable loses its `this`,
+        // and socket.io's emit reads `this.io._opts`, throwing on an unbound call.
+        const emit = s.emit.bind(s) as unknown as (
           e: string,
           p: unknown,
           cb: (res: AnyAck) => void,
