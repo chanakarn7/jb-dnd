@@ -6,13 +6,13 @@
 
 ## At a glance
 - **Modules:** 8 · **Sprints:** ~8 (0–7), dependency-ordered.
-- **Current:** Sprint 0 **Foundation in progress** (driving `/kickoff`, base dir `docs/modules/foundation/`).
+- **Current:** Sprint 0 **Foundation ✅ DONE** (docs + scaffold + dev, DoD verified live). Next up: Sprint 1 — 5e Reference.
 - **Gates signed off:** Gate 0 (multi-module ✅) · Gate 1 (module split + ~8 sprints ✅) · Gate 2 (design tool = `ui-ux-pro-max`; tokens locked in [DESIGN_SYSTEM.md](./DESIGN_SYSTEM.md) ✅) · Gate 3 (stack: Next.js + TS, SQLite/Prisma, Socket.io, Ollama+Import-from-Claude ✅).
 
 ## Sprint × module status
 | # | Sprint | Module(s) | Status | Definition of Done | Touched |
 |---|--------|-----------|--------|--------------------|---------|
-| 0 | Foundation | scaffold + lobby + roles + realtime + `LLMProvider` stub | 🚧 in-progress | DM creates a room, player joins by code, state syncs across clients | — |
+| 0 | Foundation | scaffold + lobby + roles + realtime + `LLMProvider` stub | ✅ done | DM creates a room, player joins by code, state syncs across clients | — |
 | 1 | 5e Reference | spells / items / monsters (SRD 5.1 seed) | ⬜ todo | search and view statblocks & spells | — |
 | 2 | Characters | 5e character sheet | ⬜ todo | player creates/edits their own character | — |
 | 3 | Inventory | equip + currency + attunement | ⬜ todo | items attach to a character; player manages own gear | — |
@@ -30,11 +30,14 @@ Foundation first (everything needs realtime + auth + the LLM interface stub). Ma
 Produced just-in-time by `/kickoff` when each sprint starts, under `docs/modules/<module>/` (`PRD.md`, `SA_BLUEPRINT.md`, `UXUI_DESIGN.md`, …). Shared truth stays in `docs/program/`.
 
 ## Next action
-Foundation **docs are done** (PRD, SA_BLUEPRINT, UXUI_DESIGN, prototype). Remaining for Sprint 0: **`/scaffold` then `/dev`**.
-- **Recommended:** `/clear`, then re-invoke `/kickoff` for Foundation with scope **Stage 6→7** — it resumes from the existing `docs/modules/foundation/` files.
-- Scaffold target (locked stack): Next.js + TS + custom Socket.io server (single Node process, bind 0.0.0.0), SQLite + Prisma with the `foundation_baseline` migration, Tailwind wired to the DESIGN_SYSTEM tokens.
-- Dev DoD: DM creates a room → player joins by code → roster syncs live across two browser clients; reconnect-via-token snapshot; rehydrate active campaigns on server restart; `LLMProvider` stub resolves to none.
+Foundation is complete. Start **Sprint 1 — 5e Reference** via `/kickoff` (base dir `docs/modules/5e-reference/`).
+- **Recommended:** `/clear`, then re-invoke `roadmap` (or `/kickoff` directly) — it resumes from this file.
+- Module owns `Spell`, `Item`, `Monster` (see DATA_MODEL Entity Catalog). Seed from **SRD 5.1** (openly licensed). Additive migration on top of `foundation_baseline`.
+- Reads as constraints: ARCHITECTURE (REST route handlers for reference reads — not realtime), DATA_MODEL (own the 3 reference entities), DESIGN_SYSTEM (inherit tokens; build search/list/statblock screens).
+- DoD: search and view statblocks & spells.
+- Run commands for the built app: `npm install` → `npm run db:migrate` → `npm run dev` (players join `http://<dm-ip>:3000`). Tests: `npm test`. Live smoke: `node scripts/smoke.mjs` (server must be running).
 
 ## Session log
 - **2026-06-16 (1)** — Program kickoff from `DND_CAMPAIGN_MANAGER.scope.md`. Gates 0–3 signed off. Wrote `docs/program/` (VISION, ARCHITECTURE, DATA_MODEL skeleton, DESIGN_SYSTEM, ROADMAP).
-- **2026-06-16 (2)** — Sprint 0 Foundation `/kickoff`, Stages 1→5 (docs). Wrote `docs/modules/foundation/`: PRD, SA_BLUEPRINT (+ amended program DATA_MODEL: `Campaign`/`PlayerSession` finalized, `foundation_baseline` migration), UXUI_DESIGN, mockups/index.html. Stage 3 (design) skipped — locked at program level. Next: scaffold + dev.
+- **2026-06-16 (2)** — Sprint 0 Foundation `/kickoff`, Stages 1→5 (docs). Wrote `docs/modules/foundation/`: PRD, SA_BLUEPRINT (+ amended program DATA_MODEL: `Campaign`/`PlayerSession` finalized, `foundation_baseline` migration), UXUI_DESIGN, mockups/index.html. Stage 3 (design) skipped — locked at program level.
+- **2026-06-16 (3)** — Sprint 0 Foundation Stages 6→7 (scaffold + dev). Commits `0969ec0` (scaffold) + `dba9f86` (features). Realtime lobby/roles/auth/persistence built; 21 unit tests + live DoD smoke all green (roster sync 14ms, restart rehydrates). **Sprint 0 ✅ done.** Next: Sprint 1 — 5e Reference.
