@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Cinzel, Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
+import { CampaignProvider } from "./providers";
 
 // Locked program fonts (docs/program/DESIGN_SYSTEM.md):
 // Cinzel = brand/display only · Inter = UI/body · JetBrains Mono = numerics & invite codes.
@@ -37,7 +38,9 @@ export default function RootLayout({
       lang="en"
       className={`${cinzel.variable} ${inter.variable} ${jetbrainsMono.variable} h-full antialiased`}
     >
-      <body className="min-h-dvh">{children}</body>
+      <body className="min-h-dvh">
+        <CampaignProvider>{children}</CampaignProvider>
+      </body>
     </html>
   );
 }

@@ -54,6 +54,11 @@ export interface SocketAuth {
   sessionToken?: string;
 }
 
+/** Per-socket server-side data: the authenticated identity (set after create/join/resume). */
+export interface SocketData {
+  identity?: { campaignId: string; sessionId: string; role: Role };
+}
+
 export type ErrorCode =
   | "BAD_CODE"
   | "DUPLICATE_NAME"
@@ -66,6 +71,8 @@ export interface SnapshotAck {
   ok: true;
   /** Secret token delivered to its owner ONLY (never in broadcasts). */
   token: string;
+  /** The caller's own session id, so the client can identify itself in the roster. */
+  sessionId: string;
   state: CampaignState;
 }
 export interface OkAck {

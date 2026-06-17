@@ -1,19 +1,35 @@
-// Placeholder landing — confirms the app boots and design tokens are wired.
-// Real Foundation screens (Create / Join / Lobby) are implemented in the /dev stage.
+import Link from "next/link";
+import { Crown, Users } from "lucide-react";
+
 export default function Home() {
   return (
     <main className="min-h-dvh grid place-items-center p-6">
-      <div className="max-w-md text-center space-y-4">
-        <h1 className="font-display text-4xl tracking-wide text-text">
-          D&amp;D Campaign Manager
-        </h1>
-        <p className="text-muted">
-          Scaffold ready. Realtime layer up, database migrated, tokens wired.
-        </p>
-        <p className="font-mono tnum text-accent text-lg">Sprint 0 · Foundation</p>
-        <p className="text-faint text-sm">
-          Next: <code>/dev</code> implements Create · Join · Lobby with live sync.
-        </p>
+      <div className="w-full max-w-2xl text-center space-y-8">
+        <div className="space-y-2">
+          <h1 className="font-display text-4xl sm:text-5xl tracking-wide text-text">
+            D&amp;D Campaign Manager
+          </h1>
+          <p className="text-muted">Run your table, live — on this Wi-Fi, no account needed.</p>
+        </div>
+        <div className="grid sm:grid-cols-2 gap-4 text-left">
+          <Link
+            href="/create"
+            className="rounded-md border-2 border-accent bg-surface p-6 hover:bg-surface-raised transition"
+          >
+            <Crown className="w-7 h-7 text-accent" aria-hidden />
+            <span className="block mt-3 text-lg font-semibold">Create Campaign</span>
+            <span className="text-muted text-sm">I&apos;m the Dungeon Master</span>
+          </Link>
+          <Link
+            href="/join"
+            className="rounded-md border border-border bg-surface p-6 hover:bg-surface-raised transition"
+          >
+            <Users className="w-7 h-7 text-arcane" aria-hidden />
+            <span className="block mt-3 text-lg font-semibold">Join Campaign</span>
+            <span className="text-muted text-sm">I&apos;m a Player</span>
+          </Link>
+        </div>
+        <p className="text-faint text-xs">Sprint 0 · Foundation</p>
       </div>
     </main>
   );
