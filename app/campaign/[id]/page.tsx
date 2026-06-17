@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { useCampaign } from "../../providers";
 import { formatInviteCode } from "@/lib/inviteCode";
+import { copyText } from "@/lib/clipboard";
 import type { ParticipantView } from "@/lib/events";
 
 export default function LobbyPage() {
@@ -58,7 +59,7 @@ export default function LobbyPage() {
         }}
       />
 
-      {isDM && <InviteHero inviteCode={state.inviteCode} onCopy={(m) => toast(m, "success")} />}
+      {isDM && <InviteHero inviteCode={state.inviteCode} toast={toast} />}
 
       <Roster
         participants={state.participants}
@@ -148,15 +149,27 @@ function CampaignHeader({
 
 function InviteHero({
   inviteCode,
-  onCopy,
+  toast,
 }: {
   inviteCode: string;
-  onCopy: (msg: string) => void;
+  toast: (msg: string, kind?: "success" | "warning" | "danger") => void;
 }) {
-  const joinUrl = typeof window !== "undefined" ? `${window.location.origin}` : "";
-  const copy = (text: string, msg: string) => {
-    navigator.clipboard?.writeText(text).catch(() => {});
-    onCopy(msg);
+  // Show players the real LAN URL (the server knows its IP); fall back to the
+  // current origin if the host lookup fails.
+  const [joinUrl, setJoinUrl] = useState(
+    typeof window !== "undefined" ? window.location.origin : "",
+  );
+  useEffect(() => {
+    fetch("/api/host")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d?.url) setJoinUrl(d.url);
+      })
+      .catch(() => {});
+  }, []);
+  const copy = async (text: string, msg: string) => {
+    const ok = await copyText(text);
+    toast(ok ? msg : "Couldn't copy — long-press to select it", ok ? "success" : "warning");
   };
   return (
     <section className="rounded-lg bg-surface-raised border border-border p-6 text-center">
