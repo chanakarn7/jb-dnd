@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>D&D Campaign Manager — 5e Reference (Prototype)</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          bg: '#0B0E14', surface: '#151A23', 'surface-raised': '#1E2530',
+          border: '#2A323F', text: '#F1F5F9', muted: '#94A3B8', faint: '#64748B',
+          accent: '#D9A441', 'accent-hover': '#E8B95C', arcane: '#8B5CF6',
+          danger: '#EF4444', success: '#22C55E', warning: '#F59E0B',
+        },
+        fontFamily: {
+          display: ['Cinzel', 'serif'],
+          sans: ['Inter', 'system-ui', 'sans-serif'],
+          mono: ['JetBrains Mono', 'monospace'],
+        },
+        borderRadius: { sm: '6px', md: '10px', lg: '16px' },
+      }
+    }
+  }
+</script>
+<style>
+  :root { color-scheme: dark; }
+  body { background:#0B0E14; }
+  .tnum { font-variant-numeric: tabular-nums; }
+  *:focus-visible { outline: 2px solid #D9A441; outline-offset: 2px; border-radius: 6px; }
+  .screen { display:none; }
+  .screen.active { display:block; animation: fade .18s ease-out; }
+  @keyframes fade { from{opacity:0; transform:translateY(4px)} to{opacity:1; transform:none} }
+  .gold-rule { height:2px; background:linear-gradient(90deg,#D9A441,rgba(217,164,65,.15)); border:0; }
+  .arcane-rule { height:2px; background:linear-gradient(90deg,#8B5CF6,rgba(139,92,246,.15)); border:0; }
+  .skel { background:linear-gradient(90deg,#151A23 25%,#1E2530 37%,#151A23 63%); background-size:400% 100%; animation:shimmer 1.4s ease infinite; }
+  @keyframes shimmer { from{background-position:100% 0} to{background-position:-100% 0} }
+  @media (prefers-reduced-motion: reduce) {
+    .screen.active, .skel { animation: none !important; }
+  }
+  .row:hover { background:#1E2530; }
+</style>
+</head>
+<body class="font-sans text-text min-h-dvh">
+
+<!-- ===== Demo controls (prototype only) ===== -->
+<div class="fixed top-3 right-3 z-40 flex items-center gap-2">
+  <span class="hidden sm:inline text-faint text-xs">demo states:</span>
+  <button onclick="showState('loading')" class="rounded-md border border-border bg-surface px-2 py-1 text-xs text-muted hover:text-text hover:bg-surface-raised">Loading</button>
+  <button onclick="showState('empty')" class="rounded-md border border-border bg-surface px-2 py-1 text-xs text-muted hover:text-text hover:bg-surface-raised">Empty</button>
+  <button onclick="show404()" class="rounded-md border border-border bg-surface px-2 py-1 text-xs text-muted hover:text-text hover:bg-surface-raised">404</button>
+  <button onclick="resetDemo()" title="Restart" class="rounded-md border border-border bg-surface px-2 py-1.5 text-muted hover:text-text hover:bg-surface-raised"><i data-lucide="rotate-ccw" class="w-4 h-4"></i></button>
+</div>
+
+<main class="max-w-5xl mx-auto p-4 sm:p-6">
+
+  <!-- ================= LIST / SHELL SCREEN ================= -->
+  <section id="screen-list" class="screen active">
+    <button onclick="resetDemo()" class="text-muted hover:text-text text-sm flex items-center gap-1 mb-4">
+      <i data-lucide="arrow-left" class="w-4 h-4"></i> Back to campaign
+    </button>
+    <h1 class="font-display text-3xl text-accent mb-5">Reference</h1>
+
+    <!-- tabs -->
+    <div role="tablist" class="flex gap-1 border-b border-border mb-4">
+      <button role="tab" id="tab-spells"   onclick="setTab('spells')"   class="tab px-4 py-2.5 text-sm flex items-center gap-2 border-b-2 border-transparent -mb-px"><i data-lucide="sparkles" class="w-4 h-4"></i> Spells</button>
+      <button role="tab" id="tab-monsters" onclick="setTab('monsters')" class="tab px-4 py-2.5 text-sm flex items-center gap-2 border-b-2 border-transparent -mb-px"><i data-lucide="skull" class="w-4 h-4"></i> Monsters</button>
+      <button role="tab" id="tab-items"    onclick="setTab('items')"    class="tab px-4 py-2.5 text-sm flex items-center gap-2 border-b-2 border-transparent -mb-px"><i data-lucide="sword" class="w-4 h-4"></i> Items</button>
+    </div>
+
+    <!-- search + filter button -->
+    <div class="flex gap-2 mb-3">
+      <div class="relative flex-1">
+        <i data-lucide="search" class="w-4 h-4 text-muted absolute left-3 top-1/2 -translate-y-1/2"></i>
+        <input id="search" oninput="render()" placeholder="Search…" autocomplete="off"
+          class="w-full rounded-md bg-surface border border-border pl-9 pr-9 py-2.5 text-sm placeholder:text-faint" />
+        <button id="clearSearch" onclick="clearSearch()" class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-muted hover:text-text"><i data-lucide="x" class="w-4 h-4"></i></button>
+      </div>
+      <button onclick="toggleFilters()" class="sm:hidden rounded-md border border-border bg-surface px-3 text-sm text-muted flex items-center gap-1.5"><i data-lucide="sliders-horizontal" class="w-4 h-4"></i><span id="fcount"></span></button>
+    </div>
+
+    <!-- filter bar -->
+    <div id="filterBar" class="hidden sm:flex flex-wrap items-center gap-2 mb-4 p-3 rounded-md bg-surface border border-border">
+      <div id="filters-spells" class="filters flex flex-wrap items-center gap-2">
+        <select onchange="render()" data-f="level" class="filt rounded-md bg-bg border border-border px-2.5 py-1.5 text-sm text-muted"><option value="">All levels</option><option value="0">Cantrip</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select>
+        <select onchange="render()" data-f="school" class="filt rounded-md bg-bg border border-border px-2.5 py-1.5 text-sm text-muted"><option value="">All schools</option><option>Evocation</option><option>Conjuration</option><option>Abjuration</option><option>Enchantment</option><option>Necromancy</option><option>Transmutation</option><option>Illusion</option><option>Divination</option></select>
+        <label class="chk flex items-center gap-1.5 text-sm text-muted px-2.5 py-1.5 rounded-md border border-border cursor-pointer"><input type="checkbox" onchange="render()" data-f="ritual" class="filt accent-accent"> Ritual</label>
+        <label class="chk flex items-center gap-1.5 text-sm text-muted px-2.5 py-1.5 rounded-md border border-border cursor-pointer"><input type="checkbox" onchange="render()" data-f="concentration" class="filt accent-accent"> Concentration</label>
+      </div>
+      <div id="filters-monsters" class="filters hidden flex-wrap items-center gap-2">
+        <select onchange="render()" data-f="type" class="filt rounded-md bg-bg border border-border px-2.5 py-1.5 text-sm text-muted"><option value="">All types</option><option>humanoid</option><option>beast</option><option>monstrosity</option><option>dragon</option><option>undead</option><option>fiend</option><option>giant</option></select>
+        <select onchange="render()" data-f="size" class="filt rounded-md bg-bg border border-border px-2.5 py-1.5 text-sm text-muted"><option value="">All sizes</option><option>Tiny</option><option>Small</option><option>Medium</option><option>Large</option><option>Huge</option><option>Gargantuan</option></select>
+        <label class="flex items-center gap-2 text-sm text-muted px-2.5 py-1.5 rounded-md border border-border">CR ≤ <input type="range" min="0" max="20" value="20" step="1" data-f="crmax" oninput="crLabel(this);render()" class="filt accent-accent w-28"> <span id="crVal" class="font-mono tnum text-text">20</span></label>
+      </div>
+      <div id="filters-items" class="filters hidden flex-wrap items-center gap-2">
+        <select onchange="render()" data-f="type" class="filt rounded-md bg-bg border border-border px-2.5 py-1.5 text-sm text-muted"><option value="">All types</option><option>weapon</option><option>armor</option><option>adventuring-gear</option><option>tool</option><option>wondrous</option><option>potion</option></select>
+        <select onchange="render()" data-f="rarity" class="filt rounded-md bg-bg border border-border px-2.5 py-1.5 text-sm text-muted"><option value="">All rarities</option><option>mundane</option><option>common</option><option>uncommon</option><option>rare</option><option>very-rare</option><option>legendary</option></select>
+        <label class="chk flex items-center gap-1.5 text-sm text-muted px-2.5 py-1.5 rounded-md border border-border cursor-pointer"><input type="checkbox" onchange="render()" data-f="attune" class="filt accent-accent"> Requires attunement</label>
+      </div>
+      <button onclick="clearFilters()" class="ml-auto text-sm text-muted hover:text-text flex items-center gap-1"><i data-lucide="x" class="w-3.5 h-3.5"></i> Clear filters</button>
+    </div>
+
+    <p class="text-sm text-muted tnum mb-3" id="count">—</p>
+
+    <!-- result list -->
+    <ul id="results" class="space-y-2"></ul>
+
+    <!-- loading skeleton -->
+    <ul id="skeleton" class="space-y-2 hidden">
+      <li class="skel h-16 rounded-md"></li><li class="skel h-16 rounded-md"></li><li class="skel h-16 rounded-md"></li>
+      <li class="skel h-16 rounded-md"></li><li class="skel h-16 rounded-md"></li><li class="skel h-16 rounded-md"></li>
+    </ul>
+
+    <!-- empty states -->
+    <div id="emptySearch" class="hidden text-center py-16">
+      <i data-lucide="search-x" class="w-8 h-8 text-faint mx-auto"></i>
+      <p class="mt-3 text-muted">ไม่พบ "<span id="emptyQ" class="text-text"></span>" — ลองคำอื่น</p>
+      <button onclick="clearSearch()" class="mt-4 rounded-md border border-border px-4 py-2 text-sm hover:bg-surface-raised">Clear search</button>
+    </div>
+    <div id="emptyFilter" class="hidden text-center py-16">
+      <i data-lucide="filter-x" class="w-8 h-8 text-faint mx-auto"></i>
+      <p class="mt-3 text-muted">ไม่มีรายการตรงกับฟิลเตอร์</p>
+      <button onclick="clearFilters()" class="mt-4 rounded-md border border-border px-4 py-2 text-sm hover:bg-surface-raised">Clear filters</button>
+    </div>
+
+    <div class="attribution"></div>
+  </section>
+
+  <!-- ================= DETAIL SCREEN ================= -->
+  <section id="screen-detail" class="screen">
+    <button onclick="setTab(currentTab)" class="text-muted hover:text-text text-sm flex items-center gap-1 mb-5">
+      <i data-lucide="arrow-left" class="w-4 h-4"></i> <span id="backLabel">Back</span>
+    </button>
+    <div id="detailBody" class="max-w-2xl mx-auto"></div>
+    <div class="attribution max-w-2xl mx-auto"></div>
+  </section>
+
+  <!-- ================= 404 SCREEN ================= -->
+  <section id="screen-404" class="screen">
+    <div class="text-center py-24">
+      <i data-lucide="file-question" class="w-10 h-10 text-faint mx-auto"></i>
+      <h2 class="font-display text-2xl mt-4">ไม่พบรายการนี้</h2>
+      <p class="text-muted mt-2">รายการที่คุณเปิดอาจถูกลบหรือลิงก์ผิด</p>
+      <button onclick="resetDemo()" class="mt-6 rounded-md bg-accent text-bg font-semibold px-5 py-2.5 text-sm hover:bg-accent-hover">กลับ Reference</button>
+    </div>
+  </section>
+
+</main>
+
+<script>
+/* ============ MOCK DATA (SRD 5.1 realistic) ============ */
+const mod = s => { const m = Math.floor((s-10)/2); return (m>=0?'+':'')+m; };
+const SPELLS = [
+  {slug:'fire-bolt',name:'Fire Bolt',level:0,school:'Evocation',castingTime:'1 action',range:'120 feet',components:{v:1,s:1,m:null},duration:'Instantaneous',ritual:0,concentration:0,classes:['Sorcerer','Wizard'],description:'You hurl a mote of fire at a creature or object within range. Make a ranged spell attack against the target. On a hit, the target takes 1d10 fire damage. A flammable object hit by this spell ignites if it isn\'t being worn or carried.',higher:'This spell\'s damage increases by 1d10 when you reach 5th level (2d10), 11th level (3d10), and 17th level (4d10).'},
+  {slug:'mage-hand',name:'Mage Hand',level:0,school:'Conjuration',castingTime:'1 action',range:'30 feet',components:{v:1,s:1,m:null},duration:'1 minute',ritual:0,concentration:0,classes:['Bard','Sorcerer','Warlock','Wizard'],description:'A spectral, floating hand appears at a point you choose within range. The hand lasts for the duration or until you dismiss it. You can use your action to control the hand and manipulate objects.'},
+  {slug:'cure-wounds',name:'Cure Wounds',level:1,school:'Evocation',castingTime:'1 action',range:'Touch',components:{v:1,s:1,m:null},duration:'Instantaneous',ritual:0,concentration:0,classes:['Bard','Cleric','Druid','Paladin','Ranger'],description:'A creature you touch regains a number of hit points equal to 1d8 + your spellcasting ability modifier. This spell has no effect on undead or constructs.',higher:'When you cast this spell using a spell slot of 2nd level or higher, the healing increases by 1d8 for each slot level above 1st.'},
+  {slug:'shield',name:'Shield',level:1,school:'Abjuration',castingTime:'1 reaction',range:'Self',components:{v:1,s:1,m:null},duration:'1 round',ritual:0,concentration:0,classes:['Sorcerer','Wizard'],description:'An invisible barrier of magical force appears and protects you. Until the start of your next turn, you have a +5 bonus to AC, including against the triggering attack, and you take no damage from magic missile.'},
+  {slug:'detect-magic',name:'Detect Magic',level:1,school:'Divination',castingTime:'1 action',range:'Self',components:{v:1,s:1,m:null},duration:'Concentration, up to 10 minutes',ritual:1,concentration:1,classes:['Bard','Cleric','Druid','Paladin','Ranger','Sorcerer','Wizard'],description:'For the duration, you sense the presence of magic within 30 feet of you. If you sense magic in this way, you can use your action to see a faint aura around any visible creature or object that bears magic.'},
+  {slug:'misty-step',name:'Misty Step',level:2,school:'Conjuration',castingTime:'1 bonus action',range:'Self',components:{v:1,s:0,m:null},duration:'Instantaneous',ritual:0,concentration:0,classes:['Sorcerer','Warlock','Wizard'],description:'Briefly surrounded by silvery mist, you teleport up to 30 feet to an unoccupied space that you can see.'},
+  {slug:'hold-person',name:'Hold Person',level:2,school:'Enchantment',castingTime:'1 action',range:'60 feet',components:{v:1,s:1,m:'a small, straight piece of iron'},duration:'Concentration, up to 1 minute',ritual:0,concentration:1,classes:['Bard','Cleric','Druid','Sorcerer','Warlock','Wizard'],description:'Choose a humanoid that you can see within range. The target must succeed on a Wisdom saving throw or be paralyzed for the duration. At the end of each of its turns, the target can make another Wisdom saving throw.'},
+  {slug:'fireball',name:'Fireball',level:3,school:'Evocation',castingTime:'1 action',range:'150 feet',components:{v:1,s:1,m:'a tiny ball of bat guano and sulfur'},duration:'Instantaneous',ritual:0,concentration:0,classes:['Sorcerer','Wizard'],description:'A bright streak flashes from your pointing finger to a point you choose within range and then blossoms with a low roar into an explosion of flame. Each creature in a 20-foot-radius sphere centered on that point must make a Dexterity saving throw. A target takes 8d6 fire damage on a failed save, or half as much damage on a successful one.',higher:'When you cast this spell using a spell slot of 4th level or higher, the damage increases by 1d6 for each slot level above 3rd.'},
+  {slug:'counterspell',name:'Counterspell',level:3,school:'Abjuration',castingTime:'1 reaction',range:'60 feet',components:{v:0,s:1,m:null},duration:'Instantaneous',ritual:0,concentration:0,classes:['Sorcerer','Warlock','Wizard'],description:'You attempt to interrupt a creature in the process of casting a spell. If the creature is casting a spell of 3rd level or lower, its spell fails and has no effect. If it is casting a spell of 4th level or higher, make an ability check using your spellcasting ability.'},
+  {slug:'revivify',name:'Revivify',level:3,school:'Necromancy',castingTime:'1 action',range:'Touch',components:{v:1,s:1,m:'diamonds worth 300 gp, which the spell consumes'},duration:'Instantaneous',ritual:0,concentration:0,classes:['Cleric','Paladin'],description:'You touch a creature that has died within the last minute. That creature returns to life with 1 hit point. This spell can\'t return to life a creature that has died of old age, nor can it restore any missing body parts.'},
+  {slug:'polymorph',name:'Polymorph',level:4,school:'Transmutation',castingTime:'1 action',range:'60 feet',components:{v:1,s:1,m:'a caterpillar cocoon'},duration:'Concentration, up to 1 hour',ritual:0,concentration:1,classes:['Bard','Druid','Sorcerer','Wizard'],description:'This spell transforms a creature with at least 1 hit point that you can see within range into a new form. An unwilling creature must make a Wisdom saving throw to avoid the effect.'},
+  {slug:'wall-of-force',name:'Wall of Force',level:5,school:'Evocation',castingTime:'1 action',range:'120 feet',components:{v:1,s:1,m:'a pinch of powder made by crushing a clear gemstone'},duration:'Concentration, up to 10 minutes',ritual:0,concentration:1,classes:['Wizard'],description:'An invisible wall of force springs into existence at a point you choose within range. Nothing can physically pass through the wall.'},
+];
+const MONSTERS = [
+  {slug:'goblin',name:'Goblin',size:'Small',type:'humanoid',alignment:'neutral evil',cr:'1/4',crSort:.25,xp:50,ac:15,acNote:'leather armor, shield',hp:7,hpFormula:'2d6',speed:'30 ft.',abil:{str:8,dex:14,con:10,int:10,wis:8,cha:8},skills:{Stealth:'+6'},senses:'darkvision 60 ft., passive Perception 9',languages:'Common, Goblin',traits:[{name:'Nimble Escape',desc:'The goblin can take the Disengage or Hide action as a bonus action on each of its turns.'}],actions:[{name:'Scimitar',desc:'Melee Weapon Attack: +4 to hit, reach 5 ft., one target. Hit: 5 (1d6 + 2) slashing damage.'},{name:'Shortbow',desc:'Ranged Weapon Attack: +4 to hit, range 80/320 ft., one target. Hit: 5 (1d6 + 2) piercing damage.'}]},
+  {slug:'wolf',name:'Wolf',size:'Medium',type:'beast',alignment:'unaligned',cr:'1/4',crSort:.25,xp:50,ac:13,acNote:'natural armor',hp:11,hpFormula:'2d8+2',speed:'40 ft.',abil:{str:12,dex:15,con:12,int:3,wis:12,cha:6},skills:{Perception:'+3',Stealth:'+4'},senses:'passive Perception 13',languages:'—',traits:[{name:'Pack Tactics',desc:'The wolf has advantage on attack rolls against a creature if at least one of the wolf\'s allies is within 5 ft. of the creature and the ally isn\'t incapacitated.'},{name:'Keen Hearing and Smell',desc:'The wolf has advantage on Wisdom (Perception) checks that rely on hearing or smell.'}],actions:[{name:'Bite',desc:'Melee Weapon Attack: +4 to hit, reach 5 ft., one target. Hit: 7 (2d4 + 2) piercing damage. If the target is a creature, it must succeed on a DC 11 Strength saving throw or be knocked prone.'}]},
+  {slug:'skeleton',name:'Skeleton',size:'Medium',type:'undead',alignment:'lawful evil',cr:'1/4',crSort:.25,xp:50,ac:13,acNote:'armor scraps',hp:13,hpFormula:'2d8+4',speed:'30 ft.',abil:{str:10,dex:14,con:15,int:6,wis:8,cha:5},skills:{},senses:'darkvision 60 ft., passive Perception 9',languages:'understands all languages it knew in life but can\'t speak',traits:[],actions:[{name:'Shortsword',desc:'Melee Weapon Attack: +4 to hit, reach 5 ft., one target. Hit: 5 (1d6 + 2) piercing damage.'}]},
+  {slug:'orc',name:'Orc',size:'Medium',type:'humanoid',alignment:'chaotic evil',cr:'1/2',crSort:.5,xp:100,ac:13,acNote:'hide armor',hp:15,hpFormula:'2d8+6',speed:'30 ft.',abil:{str:16,dex:12,con:16,int:7,wis:11,cha:10},skills:{Intimidation:'+2'},senses:'darkvision 60 ft., passive Perception 10',languages:'Common, Orc',traits:[{name:'Aggressive',desc:'As a bonus action, the orc can move up to its speed toward a hostile creature that it can see.'}],actions:[{name:'Greataxe',desc:'Melee Weapon Attack: +5 to hit, reach 5 ft., one target. Hit: 9 (1d12 + 3) slashing damage.'}]},
+  {slug:'owlbear',name:'Owlbear',size:'Large',type:'monstrosity',alignment:'unaligned',cr:'3',crSort:3,xp:700,ac:13,acNote:'natural armor',hp:59,hpFormula:'7d10+21',speed:'40 ft.',abil:{str:20,dex:12,con:17,int:3,wis:12,cha:7},skills:{Perception:'+3'},senses:'darkvision 60 ft., passive Perception 13',languages:'—',traits:[{name:'Keen Sight and Smell',desc:'The owlbear has advantage on Wisdom (Perception) checks that rely on sight or smell.'}],actions:[{name:'Multiattack',desc:'The owlbear makes two attacks: one with its beak and one with its claws.'},{name:'Beak',desc:'Melee Weapon Attack: +7 to hit, reach 5 ft., one creature. Hit: 10 (1d10 + 5) piercing damage.'},{name:'Claws',desc:'Melee Weapon Attack: +7 to hit, reach 5 ft., one target. Hit: 14 (2d8 + 5) slashing damage.'}]},
+  {slug:'ogre',name:'Ogre',size:'Large',type:'giant',alignment:'chaotic evil',cr:'2',crSort:2,xp:450,ac:11,acNote:'hide armor',hp:59,hpFormula:'7d10+21',speed:'40 ft.',abil:{str:19,dex:8,con:16,int:5,wis:7,cha:7},skills:{},senses:'darkvision 60 ft., passive Perception 8',languages:'Common, Giant',traits:[],actions:[{name:'Greatclub',desc:'Melee Weapon Attack: +6 to hit, reach 5 ft., one target. Hit: 13 (2d8 + 4) bludgeoning damage.'}]},
+  {slug:'troll',name:'Troll',size:'Large',type:'giant',alignment:'chaotic evil',cr:'5',crSort:5,xp:1800,ac:15,acNote:'natural armor',hp:84,hpFormula:'8d10+40',speed:'30 ft.',abil:{str:18,dex:13,con:20,int:7,wis:9,cha:7},skills:{Perception:'+2'},senses:'darkvision 60 ft., passive Perception 12',languages:'Giant',traits:[{name:'Keen Smell',desc:'The troll has advantage on Wisdom (Perception) checks that rely on smell.'},{name:'Regeneration',desc:'The troll regains 10 hit points at the start of its turn. If the troll takes acid or fire damage, this trait doesn\'t function at the start of the troll\'s next turn.'}],actions:[{name:'Multiattack',desc:'The troll makes three attacks: one with its bite and two with its claws.'},{name:'Bite',desc:'Melee Weapon Attack: +7 to hit, reach 5 ft., one target. Hit: 7 (1d6 + 4) piercing damage.'},{name:'Claw',desc:'Melee Weapon Attack: +7 to hit, reach 5 ft., one target. Hit: 11 (2d6 + 4) slashing damage.'}]},
+  {slug:'adult-red-dragon',name:'Adult Red Dragon',size:'Huge',type:'dragon',alignment:'chaotic evil',cr:'17',crSort:17,xp:18000,ac:19,acNote:'natural armor',hp:256,hpFormula:'19d12+133',speed:'40 ft., climb 40 ft., fly 80 ft.',abil:{str:27,dex:10,con:25,int:16,wis:13,cha:21},saves:{Dex:'+6',Con:'+13',Wis:'+7',Cha:'+11'},skills:{Perception:'+13',Stealth:'+6'},senses:'blindsight 60 ft., darkvision 120 ft., passive Perception 23',languages:'Common, Draconic',immun:{damage:['fire'],condition:[]},traits:[{name:'Legendary Resistance (3/Day)',desc:'If the dragon fails a saving throw, it can choose to succeed instead.'}],actions:[{name:'Multiattack',desc:'The dragon can use its Frightful Presence. It then makes three attacks: one with its bite and two with its claws.'},{name:'Bite',desc:'Melee Weapon Attack: +14 to hit, reach 10 ft., one target. Hit: 19 (2d10 + 8) piercing damage plus 7 (2d6) fire damage.'},{name:'Fire Breath (Recharge 5–6)',desc:'The dragon exhales fire in a 60-foot cone. Each creature in that area must make a DC 21 Dexterity saving throw, taking 63 (18d6) fire damage on a failed save, or half as much on a success.'}],legendary:[{name:'Detect',desc:'The dragon makes a Wisdom (Perception) check.'},{name:'Tail Attack',desc:'The dragon makes a tail attack.'},{name:'Wing Attack (Costs 2 Actions)',desc:'The dragon beats its wings. Each creature within 10 ft. must succeed on a DC 22 Dexterity saving throw or take 13 (2d6 + 6) bludgeoning damage and be knocked prone.'}]},
+];
+const ITEMS = [
+  {slug:'longsword',name:'Longsword',type:'weapon',rarity:'mundane',attune:0,props:{damage:'1d8 slashing',versatile:'1d10 slashing',weight:'3 lb',cost:'15 gp',properties:'Versatile'},description:null},
+  {slug:'dagger',name:'Dagger',type:'weapon',rarity:'mundane',attune:0,props:{damage:'1d4 piercing',weight:'1 lb',cost:'2 gp',properties:'Finesse, light, thrown (range 20/60)'},description:null},
+  {slug:'plate-armor',name:'Plate Armor',type:'armor',rarity:'mundane',attune:0,props:{armorClass:'18',weight:'65 lb',cost:'1,500 gp',strength:'Str 15',stealth:'Disadvantage'},description:'Plate consists of shaped, interlocking metal plates to cover the entire body.'},
+  {slug:'shield',name:'Shield',type:'armor',rarity:'mundane',attune:0,props:{armorClass:'+2',weight:'6 lb',cost:'10 gp'},description:null},
+  {slug:'potion-of-healing',name:'Potion of Healing',type:'potion',rarity:'common',attune:0,props:{weight:'0.5 lb'},description:'You regain 2d4 + 2 hit points when you drink this potion. The potion\'s red liquid glimmers when agitated.'},
+  {slug:'bag-of-holding',name:'Bag of Holding',type:'wondrous',rarity:'uncommon',attune:0,props:{weight:'15 lb'},description:'This bag has an interior space considerably larger than its outside dimensions, roughly 2 feet in diameter at the mouth and 4 feet deep. The bag can hold up to 500 pounds, not exceeding a volume of 64 cubic feet.'},
+  {slug:'flame-tongue',name:'Flame Tongue',type:'weapon',rarity:'rare',attune:1,props:{damage:'1d8 slashing + 2d6 fire',weight:'3 lb'},description:'You can use a bonus action to speak this magic sword\'s command word, causing flames to erupt from the blade. While the sword is ablaze, it deals an extra 2d6 fire damage to any target it hits.'},
+  {slug:'staff-of-power',name:'Staff of Power',type:'wondrous',rarity:'very-rare',attune:1,props:{weight:'4 lb'},description:'This staff can be wielded as a magic quarterstaff that grants a +2 bonus to attack and damage rolls. While holding it, you gain a +2 bonus to AC, saving throws, and spell attack rolls. The staff has 20 charges.'},
+];
+const rarityCls = { mundane:'border-faint text-muted', common:'border-muted text-muted', uncommon:'border-success text-success', rare:'border-arcane text-arcane', 'very-rare':'border-accent text-accent', legendary:'border-accent text-accent' };
+const ATTRIB = 'This work includes material from the System Reference Document 5.1 by Wizards of the Coast LLC, available under CC-BY-4.0.';
+
+/* ============ STATE + RENDER ============ */
+let currentTab = 'spells';
+const $ = id => document.getElementById(id);
+function dataFor(t){ return t==='spells'?SPELLS : t==='monsters'?MONSTERS : ITEMS; }
+function activeFilters(){ const o={}; document.querySelectorAll('#filters-'+currentTab+' .filt').forEach(el=>{ const k=el.dataset.f; o[k]= el.type==='checkbox'?el.checked : el.value; }); return o; }
+function nFilters(){ const f=activeFilters(); return Object.values(f).filter(v=> v===true || (typeof v==='string'&&v!=='') || (v!=='' && v!==undefined && /^\d+$/.test(v) && currentTab==='monsters' && false)).length; }
+
+function setTab(t){
+  currentTab=t;
+  document.querySelectorAll('.tab').forEach(b=>{ b.classList.remove('text-text','border-accent'); b.classList.add('text-muted','border-transparent'); });
+  const at=$('tab-'+t); at.classList.add('text-text','border-accent'); at.classList.remove('text-muted','border-transparent');
+  document.querySelectorAll('[role=tab]').forEach(b=>b.setAttribute('aria-selected', b===at));
+  document.querySelectorAll('.filters').forEach(f=>f.classList.add('hidden'));
+  $('filters-'+t).classList.remove('hidden');
+  $('search').value=''; $('search').placeholder = 'Search '+t+'…';
+  document.querySelectorAll('#filters-'+t+' .filt').forEach(el=>{ if(el.type==='checkbox')el.checked=false; else if(el.type==='range'){el.value=20; crLabel(el);} else el.value=''; });
+  showScreen('list'); render();
+}
+function crLabel(el){ $('crVal').textContent = el.value; }
+function clearSearch(){ $('search').value=''; render(); }
+function clearFilters(){ document.querySelectorAll('#filters-'+currentTab+' .filt').forEach(el=>{ if(el.type==='checkbox')el.checked=false; else if(el.type==='range'){el.value=20;crLabel(el);} else el.value=''; }); render(); }
+function toggleFilters(){ $('filterBar').classList.toggle('hidden'); }
+
+function render(){
+  // reset states
+  ['skeleton','emptySearch','emptyFilter'].forEach(i=>$(i).classList.add('hidden'));
+  $('results').classList.remove('hidden');
+  const q = $('search').value.trim().toLowerCase();
+  $('clearSearch').classList.toggle('hidden', !q);
+  const f = activeFilters();
+  // fcount badge (mobile)
+  const fc = Object.entries(f).filter(([k,v])=> v===true || (typeof v==='string'&&v!=='') || (k==='crmax'&&v!=='20')).length;
+  $('fcount').textContent = fc? '('+fc+')':'';
+  let rows = dataFor(currentTab).filter(x => !q || x.name.toLowerCase().includes(q));
+  rows = rows.filter(x=>{
+    if(currentTab==='spells'){
+      if(f.level!=='' && String(x.level)!==f.level) return false;
+      if(f.school && x.school!==f.school) return false;
+      if(f.ritual && !x.ritual) return false;
+      if(f.concentration && !x.concentration) return false;
+    } else if(currentTab==='monsters'){
+      if(f.type && x.type!==f.type) return false;
+      if(f.size && x.size!==f.size) return false;
+      if(f.crmax!=='' && x.crSort > Number(f.crmax)) return false;
+    } else {
+      if(f.type && x.type!==f.type) return false;
+      if(f.rarity && x.rarity!==f.rarity) return false;
+      if(f.attune && !x.attune) return false;
+    }
+    return true;
+  });
+  $('count').textContent = 'พบ '+rows.length+' รายการ';
+  if(rows.length===0){ $('results').classList.add('hidden'); (q?$('emptySearch'):$('emptyFilter')).classList.remove('hidden'); if(q)$('emptyQ').textContent=$('search').value; lucide.createIcons(); return; }
+  $('results').innerHTML = rows.map(rowHtml).join('');
+  lucide.createIcons();
+}
+function rowHtml(x){
+  if(currentTab==='spells'){
+    const comp = [x.components.v?'V':'',x.components.s?'S':'',x.components.m?'M':''].filter(Boolean).join(' ');
+    return `<li><a href="#" onclick="openDetail('${x.slug}');return false" class="row block rounded-md border border-border bg-surface px-4 py-3">
+      <div class="flex items-start gap-2">
+        <i data-lucide="sparkles" class="w-4 h-4 text-arcane mt-1 shrink-0"></i>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-2 flex-wrap">
+            <span class="font-medium">${x.name}</span>
+            <span class="text-xs rounded-full px-2 py-0.5 border border-accent/50 text-accent font-mono tnum">${x.level===0?'Cantrip':'Lvl '+x.level}</span>
+            <span class="text-xs rounded-full px-2 py-0.5 border border-arcane/50 text-arcane">${x.school}</span>
+            ${x.ritual?'<span class="text-xs text-muted flex items-center gap-0.5"><i data-lucide="repeat" class="w-3 h-3"></i>ritual</span>':''}
+            ${x.concentration?'<span class="text-xs text-muted flex items-center gap-0.5"><i data-lucide="circle-dot" class="w-3 h-3"></i>conc.</span>':''}
+          </div>
+          <div class="text-sm text-muted mt-0.5">${x.castingTime} · ${x.range}${comp?' · '+comp:''}</div>
+        </div>
+      </div></a></li>`;
+  }
+  if(currentTab==='monsters'){
+    return `<li><a href="#" onclick="openDetail('${x.slug}');return false" class="row block rounded-md border border-border bg-surface px-4 py-3">
+      <div class="flex items-center gap-2">
+        <i data-lucide="skull" class="w-4 h-4 text-muted shrink-0"></i>
+        <div class="flex-1 min-w-0">
+          <div class="font-medium">${x.name}</div>
+          <div class="text-sm text-muted">${x.size} ${x.type}</div>
+        </div>
+        <div class="text-sm font-mono tnum text-muted whitespace-nowrap">CR ${x.cr} · HP ${x.hp} · AC ${x.ac}</div>
+      </div></a></li>`;
+  }
+  const r = rarityCls[x.rarity]||rarityCls.mundane;
+  const sub = [x.props.damage, x.props.armorClass?('AC '+x.props.armorClass):'', x.props.weight, x.props.cost].filter(Boolean).join(' · ');
+  return `<li><a href="#" onclick="openDetail('${x.slug}');return false" class="row block rounded-md border border-border bg-surface px-4 py-3">
+    <div class="flex items-start gap-2">
+      <i data-lucide="sword" class="w-4 h-4 text-muted mt-1 shrink-0"></i>
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center gap-2 flex-wrap">
+          <span class="font-medium">${x.name}</span>
+          <span class="text-xs rounded-full px-2 py-0.5 border ${r.split(' ')[0]} text-muted">${x.type}</span>
+          <span class="text-xs rounded-full px-2 py-0.5 border ${r}">${x.rarity}</span>
+        </div>
+        <div class="text-sm text-muted mt-0.5 font-mono tnum">${sub}${x.attune?' · ':''}${x.attune?'<span class="text-accent">◈ attunement</span>':''}</div>
+      </div>
+    </div></a></li>`;
+}
+
+/* ============ DETAIL ============ */
+function openDetail(slug){
+  const x = dataFor(currentTab).find(d=>d.slug===slug);
+  if(!x){ show404(); return; }
+  $('backLabel').textContent = 'Back to '+currentTab;
+  $('detailBody').innerHTML = currentTab==='spells'?spellCard(x) : currentTab==='monsters'?statblock(x) : itemCard(x);
+  showScreen('detail'); lucide.createIcons();
+}
+function line(l,v){ return `<div class="flex gap-3 py-1"><span class="text-muted w-32 shrink-0">${l}</span><span class="flex-1">${v}</span></div>`; }
+function spellCard(x){
+  const comp = [x.components.v?'V':'',x.components.s?'S':'',x.components.m?'M':''].filter(Boolean).join(', ') + (x.components.m?' ('+x.components.m+')':'');
+  return `<i data-lucide="sparkles" class="w-6 h-6 text-arcane mb-2"></i>
+  <h2 class="font-display text-3xl text-text">${x.name}</h2>
+  <p class="text-arcane mt-1">${x.level===0?'Cantrip':'Level '+x.level} ${x.school}${x.ritual?' · ritual':''}${x.concentration?' · concentration':''}</p>
+  <hr class="arcane-rule my-4">
+  ${line('Casting Time', x.castingTime)}${line('Range', x.range)}${line('Components', comp)}${line('Duration', x.duration)}
+  <hr class="border-border my-4">
+  <p class="leading-relaxed">${x.description}</p>
+  ${x.higher?`<p class="leading-relaxed mt-3"><span class="font-semibold text-text">At Higher Levels.</span> ${x.higher.replace(/^.*?(When you cast)/,'$1')}</p>`:''}
+  <hr class="border-border my-4">
+  <p class="text-sm"><span class="text-muted">Classes:</span> ${x.classes.map(c=>`<span class="text-arcane">${c}</span>`).join(' · ')}</p>`;
+}
+function itemCard(x){
+  const r = rarityCls[x.rarity]||rarityCls.mundane;
+  const rows = Object.entries(x.props).map(([k,v])=> line(k.charAt(0).toUpperCase()+k.slice(1).replace(/([A-Z])/g,' $1'), `<span class="font-mono tnum">${v}</span>`)).join('');
+  return `<i data-lucide="sword" class="w-6 h-6 text-accent mb-2"></i>
+  <h2 class="font-display text-3xl text-text">${x.name}</h2>
+  <p class="mt-1"><span class="capitalize text-muted">${x.type}</span> · <span class="${r.split(' ')[1]||'text-muted'}">${x.rarity}</span>${x.attune?' · <span class="text-accent">◈ requires attunement</span>':''}</p>
+  <hr class="gold-rule my-4">
+  ${rows}
+  ${x.description?`<hr class="border-border my-4"><p class="leading-relaxed">${x.description}</p>`:''}`;
+}
+function statblock(x){
+  const abil = ['str','dex','con','int','wis','cha'].map(k=>`
+    <div class="rounded-md bg-surface-raised border border-border px-2 py-2 text-center">
+      <div class="text-[11px] uppercase tracking-wide text-muted">${k}</div>
+      <div class="font-mono tnum text-lg text-text">${x.abil[k]}</div>
+      <div class="font-mono tnum text-sm text-muted">${mod(x.abil[k])}</div>
+    </div>`).join('');
+  const opt = (l,v)=> v? line(l,v):'';
+  const skills = x.skills && Object.keys(x.skills).length? Object.entries(x.skills).map(([k,v])=>k+' '+v).join(', '):'';
+  const saves = x.saves? Object.entries(x.saves).map(([k,v])=>k+' '+v).join(', '):'';
+  const immun = x.immun && x.immun.damage.length? x.immun.damage.join(', '):'';
+  const sect = (title,arr)=> arr&&arr.length? `<h3 class="text-accent text-sm font-semibold uppercase tracking-wider mt-5 mb-2 border-b border-border pb-1">${title}</h3>`+arr.map(a=>`<p class="mb-2 leading-relaxed"><span class="font-semibold italic text-text">${a.name}.</span> ${a.desc}</p>`).join(''):'';
+  return `<h2 class="font-display text-3xl text-accent">${x.name}</h2>
+  <p class="italic text-muted">${x.size} ${x.type} (${x.alignment})</p>
+  <hr class="gold-rule my-3">
+  <div class="space-y-0 text-sm">
+    ${line('Armor Class', `<span class="font-mono tnum">${x.ac}</span> <span class="text-muted">(${x.acNote})</span>`)}
+    ${line('Hit Points', `<span class="font-mono tnum">${x.hp}</span> <span class="text-muted">(${x.hpFormula})</span>`)}
+    ${line('Speed', x.speed)}
+  </div>
+  <hr class="gold-rule my-3">
+  <div class="grid grid-cols-6 gap-2 my-3">${abil}</div>
+  <hr class="gold-rule my-3">
+  <div class="space-y-0 text-sm">
+    ${opt('Saving Throws', saves)}
+    ${opt('Skills', skills)}
+    ${opt('Damage Immunities', immun)}
+    ${opt('Senses', x.senses)}
+    ${opt('Languages', x.languages)}
+    ${line('Challenge', `<span class="font-mono tnum">${x.cr}</span> <span class="text-muted">(${x.xp.toLocaleString()} XP)</span>`)}
+  </div>
+  ${x.traits&&x.traits.length?'<hr class="gold-rule my-3">'+x.traits.map(a=>`<p class="mb-2 leading-relaxed text-sm"><span class="font-semibold italic text-text">${a.name}.</span> ${a.desc}</p>`).join(''):''}
+  ${sect('Actions', x.actions)}
+  ${sect('Legendary Actions', x.legendary)}`;
+}
+
+/* ============ SCREENS / DEMO STATES ============ */
+function showScreen(s){ document.querySelectorAll('.screen').forEach(el=>el.classList.remove('active')); $('screen-'+s).classList.add('active'); window.scrollTo(0,0); lucide.createIcons(); }
+function showState(kind){
+  showScreen('list');
+  if(kind==='loading'){ ['results','emptySearch','emptyFilter'].forEach(i=>$(i).classList.add('hidden')); $('skeleton').classList.remove('hidden'); $('count').textContent='กำลังโหลด…'; }
+  if(kind==='empty'){ $('search').value='zzxq'; render(); }
+}
+function show404(){ showScreen('404'); }
+function resetDemo(){ setTab('spells'); }
+
+/* init */
+function initAttribution(){ document.querySelectorAll('.attribution').forEach(d=>{ d.className='attribution mt-10 pt-4 border-t border-border'; d.innerHTML='<p class="text-faint text-xs leading-relaxed">'+ATTRIB+'</p>'; }); }
+initAttribution();
+setTab('spells');
+lucide.createIcons();
+</script>
+</body>
+</html>

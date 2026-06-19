@@ -81,13 +81,67 @@ Owner: Foundation. **Finalized (Sprint 0 baseline migration `foundation_baseline
 | `lastSeenAt` | DateTime | default now — updated on heartbeat/disconnect |
 
 ### Spell
-Owner: 5e Reference. Stub: SRD 5.1 fields — `id`, `name`, `level`, `school`, `castingTime`, `range`, `components`, `duration`, `description`, `classes`. Seeded read-mostly reference.
+Owner: 5e Reference. **Finalized (Sprint 1, migration `5e_reference`).** GLOBAL SRD reference — **no `campaignId`** (shared across all campaigns). Seeded read-mostly; idempotent upsert by `slug`. See [SA_BLUEPRINT](../modules/5e-reference/SA_BLUEPRINT.md).
+| Column | Type | Constraints |
+|--------|------|-------------|
+| `id` | String | PK, cuid |
+| `slug` | String | **@unique**, indexed — natural key + deep-link param |
+| `name` | String | indexed |
+| `level` | Int | 0 = cantrip … 9; **indexed** (filter) |
+| `school` | String | **indexed** (filter) |
+| `castingTime` | String | |
+| `range` | String | |
+| `duration` | String | |
+| `components` | String | JSON `{ v, s, m }` |
+| `ritual` | Boolean | default false (filter toggle) |
+| `concentration` | Boolean | default false (filter toggle) |
+| `description` | String | full rules text |
+| `higherLevels` | String? | "At Higher Levels" text |
+| `classesJson` | String | JSON `string[]` (filter by class, client-side) |
+| `source` | String | default "SRD 5.1" |
 
 ### Item
-Owner: 5e Reference. Stub: `id`, `name`, `type` (weapon/armor/gear/…), `rarity`, `properties` (JSON), `weight`, `cost`, `description`. Seeded reference (campaign-scoped copies allowed for homebrew/loot).
+Owner: 5e Reference. **Finalized (Sprint 1, migration `5e_reference`).** GLOBAL SRD reference — **no `campaignId`**. (Homebrew/loot campaign-scoped copies are OUT of v1 — a future module may add a separate campaign-scoped table; this one stays global.)
+| Column | Type | Constraints |
+|--------|------|-------------|
+| `id` | String | PK, cuid |
+| `slug` | String | **@unique**, indexed |
+| `name` | String | indexed |
+| `type` | String | weapon/armor/adventuring-gear/tool/…; **indexed** (filter) |
+| `rarity` | String | default "mundane"; **indexed** (filter) |
+| `requiresAttunement` | Boolean | default false (filter toggle) |
+| `propertiesJson` | String | JSON `{ damage, versatile, weight, cost, armorClass, … }` |
+| `description` | String? | |
+| `source` | String | default "SRD 5.1" |
 
 ### Monster
-Owner: 5e Reference. Stub: SRD 5.1 statblock — `id`, `name`, `cr`, `hp`, `ac`, `speed`, `abilityScores`, `actions` (JSON), `traits`, `conditionImmunities`. Seeded reference.
+Owner: 5e Reference. **Finalized (Sprint 1, migration `5e_reference`).** GLOBAL SRD reference — **no `campaignId`**. Combat (Sprint 4) `Combatant` will reference this via additive migration; do not redesign here.
+| Column | Type | Constraints |
+|--------|------|-------------|
+| `id` | String | PK, cuid |
+| `slug` | String | **@unique**, indexed |
+| `name` | String | indexed |
+| `size` | String | Tiny…Gargantuan; **indexed** (filter) |
+| `type` | String | 14 creature types; **indexed** (filter) |
+| `alignment` | String | |
+| `cr` | String | display ("1/4", "0", "5") |
+| `crSort` | Float | numeric CR for range filter/sort; **indexed** |
+| `xp` | Int | derived from CR at seed (deterministic) |
+| `ac` | Int | |
+| `acNote` | String? | "(natural armor)" |
+| `hp` | Int | |
+| `hpFormula` | String? | "2d6" |
+| `speed` | String | |
+| `abilityScores` | String | JSON `{ str,dex,con,int,wis,cha }` |
+| `savesJson` | String | JSON `{ dex:"+2", … }` |
+| `skillsJson` | String | JSON `{ stealth:"+6", … }` |
+| `senses` | String? | |
+| `languages` | String? | |
+| `immunitiesJson` | String | JSON `{ damage:[], condition:[] }` |
+| `resistancesJson` | String | JSON `string[]` |
+| `traitsJson` | String | JSON `[{ name, desc }]` |
+| `actionsJson` | String | JSON `[{ name, desc, kind }]` (action/legendary/reaction) |
+| `source` | String | default "SRD 5.1" |
 
 ### Character
 Owner: Characters. **Heaviest entity.** Stub: `id`, `campaignId`, `ownerSessionId?` (player owner; null/dm-owned = NPC), `isNpc`, `name`, `race`, `class`, `subclass`, `level`, ability scores (`str…cha`), `proficiencyBonus`, `maxHp`, `currentHp`, `tempHp`, `ac`, `speed`, saving-throw & skill proficiencies (JSON), `spellSlots` (JSON by level), `conditions` (JSON, set during Combat).

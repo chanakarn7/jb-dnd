@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import {
   ArrowLeft,
+  BookOpen,
   Crown,
   User,
   UsersRound,
@@ -42,12 +44,20 @@ export default function LobbyPage() {
 
   return (
     <main className="min-h-dvh max-w-5xl mx-auto p-6 space-y-8">
-      <button
-        onClick={leave}
-        className="text-muted hover:text-text text-sm flex items-center gap-1 w-fit"
-      >
-        <ArrowLeft className="w-4 h-4" aria-hidden /> Leave
-      </button>
+      <div className="flex items-center justify-between">
+        <button
+          onClick={leave}
+          className="text-muted hover:text-text text-sm flex items-center gap-1 w-fit"
+        >
+          <ArrowLeft className="w-4 h-4" aria-hidden /> Leave
+        </button>
+        <Link
+          href="/reference"
+          className="text-muted hover:text-accent text-sm flex items-center gap-1.5 w-fit"
+        >
+          <BookOpen className="w-4 h-4" aria-hidden /> Reference
+        </Link>
+      </div>
 
       <CampaignHeader
         name={state.name}

@@ -39,3 +39,79 @@ model PlayerSession {
   @@unique([campaignId, displayName]) // names unique WITHIN a campaign, not globally
   @@index([campaignId])
 }
+
+// ── 5e Reference (Sprint 1) ─────────────────────────────────────────
+// GLOBAL SRD 5.1 reference data (CC-BY-4.0). NO campaignId — shared across all
+// campaigns. Read-mostly; seeded idempotently by `slug`. Multi-value/nested
+// fields = JSON strings (SQLite has no native array/JSON). Filterable scalars
+// are real columns + indexed. See docs/program/DATA_MODEL.md.
+
+model Spell {
+  id            String  @id @default(cuid())
+  slug          String  @unique // natural key + deep-link param ("fireball")
+  name          String
+  level         Int // 0 = cantrip .. 9
+  school        String
+  castingTime   String
+  range         String
+  duration      String
+  components    String // JSON: { v, s, m }
+  ritual        Boolean @default(false)
+  concentration Boolean @default(false)
+  description   String
+  higherLevels  String?
+  classesJson   String // JSON string[]
+  source        String  @default("SRD 5.1")
+
+  @@index([level])
+  @@index([school])
+  @@index([name])
+}
+
+model Item {
+  id                 String  @id @default(cuid())
+  slug               String  @unique
+  name               String
+  type               String // "weapon" | "armor" | "adventuring-gear" | "tool" | ...
+  rarity             String  @default("mundane")
+  requiresAttunement Boolean @default(false)
+  propertiesJson     String  @default("{}") // JSON object
+  description        String?
+  source             String  @default("SRD 5.1")
+
+  @@index([type])
+  @@index([rarity])
+  @@index([name])
+}
+
+model Monster {
+  id              String  @id @default(cuid())
+  slug            String  @unique
+  name            String
+  size            String
+  type            String // 14 creature types
+  alignment       String
+  cr              String // display: "1/4", "0", "5"
+  crSort          Float // numeric for range filter/sort
+  xp              Int     @default(0)
+  ac              Int
+  acNote          String?
+  hp              Int
+  hpFormula       String?
+  speed           String
+  abilityScores   String // JSON: { str,dex,con,int,wis,cha }
+  savesJson       String  @default("{}")
+  skillsJson      String  @default("{}")
+  senses          String?
+  languages       String?
+  immunitiesJson  String  @default("{}")
+  resistancesJson String  @default("[]")
+  traitsJson      String  @default("[]")
+  actionsJson     String  @default("[]")
+  source          String  @default("SRD 5.1")
+
+  @@index([crSort])
+  @@index([type])
+  @@index([size])
+  @@index([name])
+}
