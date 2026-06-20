@@ -22,6 +22,7 @@ import { formatInviteCode } from "@/lib/inviteCode";
 import { copyText } from "@/lib/clipboard";
 import type { ParticipantView } from "@/lib/events";
 import CombatTracker from "./CombatTracker";
+import StorySection from "./StorySection";
 
 export default function LobbyPage() {
   const { id } = useParams<{ id: string }>();
@@ -93,6 +94,9 @@ export default function LobbyPage() {
 
       {/* Combat tracker — Sprint 4 */}
       <CombatTracker campaignId={id} />
+
+      {/* Story hub — Sprint 5 */}
+      <StorySection campaignId={id} />
     </main>
   );
 }

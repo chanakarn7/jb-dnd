@@ -26,8 +26,10 @@ This is a **skeleton**: shared entities + relationships are locked; per-entity c
 | `Encounter` | Combat | a combat instance: participants + initiative + turn state | [#encounter](#encounter) |
 | `Combatant` | Combat | a row in an encounter: a Character or Monster with live HP/conditions/initiative | [#combatant](#combatant) |
 | `Session` | Story | a play session log (date, recap, what happened) | [#session](#session) |
-| `Quest` | Story | a quest/plot thread (giver, location, reward, status) | [#quest](#quest) |
-| `Location` | Story | a place (town, dungeon, region) entities reference | [#location](#location) |
+| `Quest` | Story | a quest/plot thread (giver, objectives checklist, status) | [#quest](#quest) |
+| `Npc` | Story | narrative NPC record (name, role, faction, notes, alive/dead) | [#npc](#npc) |
+| `JournalEntry` | Story | free-form markdown journal entry, optionally linked to a Session | [#journalentry](#journalentry) |
+| `Location` | Story | a place (town, dungeon, region) — stub, not built Sprint 5 | [#location](#location) |
 | `DiceRoll` | Player UI + Dice | a broadcast roll (formula, result, who, context) | [#diceroll](#diceroll) |
 
 > **Ownership rule:** the *owner module* is responsible for that table's shape. Other modules **reference** it (FK) and may **add** columns via additive migration with a note here — they do not redesign it.
@@ -249,13 +251,65 @@ Owner: Combat. **Finalized (Sprint 4, migration `combat`).** One row per partici
 See [SA_BLUEPRINT](../modules/combat/SA_BLUEPRINT.md).
 
 ### Session
-Owner: Story. Stub: `id`, `campaignId`, `number`, `date`, `title`, `recap`, `xpAwarded`, links to encounters/quests/loot (JSON or join tables, decided in Sprint 5).
+Owner: Story. **Finalized (Sprint 5, migration `story`).** A play-session log — narrative record, not a Combat Encounter.
+| Column | Type | Constraints | Notes |
+|--------|------|-------------|-------|
+| `id` | String | PK cuid | |
+| `campaignId` | String | FK→Campaign CASCADE, **@@index** | |
+| `title` | String? | nullable, ≤120 | display "Session N" if null |
+| `date` | DateTime | required | future dates allowed (pre-logging) |
+| `summary` | String? | nullable | raw markdown |
+| `xpAwarded` | Int | default 0, ≥0 | 0 = milestone XP campaign |
+| `notableLoot` | String? | nullable | free text |
+| `createdAt` | DateTime | default now | |
+| `updatedAt` | DateTime | @updatedAt | |
+1—N `JournalEntry` (SET NULL on Session delete — entries are not deleted with session).
 
 ### Quest
-Owner: Story. Stub: `id`, `campaignId`, `title`, `description`, `giverCharacterId?`, `locationId?`, `rewardItemIds` (JSON), `status` (`open`|`active`|`done`).
+Owner: Story. **Finalized (Sprint 5, migration `story`).** A plot thread / mission tracked by DM; players read-only.
+| Column | Type | Constraints | Notes |
+|--------|------|-------------|-------|
+| `id` | String | PK cuid | |
+| `campaignId` | String | FK→Campaign CASCADE, **@@index** | |
+| `name` | String | required, ≤120 | |
+| `description` | String? | nullable | markdown |
+| `giverName` | String? | nullable, ≤100 | free text — NOT a FK to Npc (avoids cascade complexity) |
+| `status` | String | default `"active"` | `active`\|`completed`\|`failed`\|`abandoned` |
+| `objectivesJson` | String | default `"[]"` | JSON `[{text:string, checked:boolean}]` — same pattern as `conditionsJson` in Combat |
+| `reward` | String? | nullable | free text |
+| `createdAt` | DateTime | default now | |
+| `updatedAt` | DateTime | @updatedAt | |
+
+### Npc
+Owner: Story. **Finalized (Sprint 5, migration `story`).** Narrative NPC record (narrative data, NOT a full PC stat block — that's `Character`).
+| Column | Type | Constraints | Notes |
+|--------|------|-------------|-------|
+| `id` | String | PK cuid | |
+| `campaignId` | String | FK→Campaign CASCADE, **@@index** | |
+| `characterId` | String? | nullable FK→Character **SET NULL** on Character delete | optional link to a Character stat block |
+| `name` | String | required, ≤100 | |
+| `role` | String? | nullable, ≤80 | occupation/title |
+| `faction` | String? | nullable, ≤80 | |
+| `notes` | String? | nullable | markdown |
+| `isAlive` | Boolean | default true | death toggle (DM only) |
+| `createdAt` | DateTime | default now | |
+| `updatedAt` | DateTime | @updatedAt | |
+Back-relation: `Character.npcs Npc[]` (additive — no SQL column change; FK lives on `Npc`).
+
+### JournalEntry
+Owner: Story. **Finalized (Sprint 5, migration `story`).** Free-form markdown campaign journal entry; optionally linked to a Session.
+| Column | Type | Constraints | Notes |
+|--------|------|-------------|-------|
+| `id` | String | PK cuid | |
+| `campaignId` | String | FK→Campaign CASCADE, **@@index** | |
+| `sessionId` | String? | nullable FK→Session **SET NULL** on Session delete | optional link |
+| `title` | String? | nullable, ≤200 | |
+| `content` | String | required, min 1 char | markdown |
+| `createdAt` | DateTime | default now | |
+| `updatedAt` | DateTime | @updatedAt | |
 
 ### Location
-Owner: Story (introduced as a shared reference early if Combat needs it — additive). Stub: `id`, `campaignId`, `name`, `type`, `description`, `parentLocationId?`.
+Owner: Story (stub — not built in Sprint 5). Stub: `id`, `campaignId`, `name`, `type`, `description`, `parentLocationId?`.
 
 ### DiceRoll
 Owner: Player UI + Dice. Stub: `id`, `campaignId`, `sessionId?`, `actorSessionId`, `formula` (e.g. `1d20+5`), `result`, `breakdown` (JSON), `context` (e.g. "attack vs Goblin"), `rolledAt`. Broadcast-and-log.

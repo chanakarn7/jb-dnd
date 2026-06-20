@@ -1,0 +1,1492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Story Module — Sprint 5 Prototype</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root {
+  --bg: #0B0E14;
+  --surface: #151A23;
+  --surface-raised: #1E2530;
+  --border: #2A323F;
+  --text: #F1F5F9;
+  --text-muted: #94A3B8;
+  --text-faint: #64748B;
+  --accent: #D9A441;
+  --accent-hover: #E8B95C;
+  --arcane: #8B5CF6;
+  --danger: #EF4444;
+  --success: #22C55E;
+  --warning: #F59E0B;
+  --r-sm: 6px;
+  --r-md: 10px;
+  --r-lg: 16px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Inter', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 16px;
+  line-height: 1.5;
+  min-height: 100vh;
+}
+
+/* ── Layout ── */
+.app { max-width: 960px; margin: 0 auto; padding: 24px 16px; }
+
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.app-title {
+  font-family: 'Cinzel', serif;
+  font-size: 20px;
+  color: var(--accent);
+  letter-spacing: 0.05em;
+}
+
+.role-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.toggle-switch {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  cursor: pointer;
+}
+
+.toggle-switch input { display: none; }
+
+.toggle-track {
+  position: absolute;
+  inset: 0;
+  background: var(--border);
+  border-radius: 12px;
+  transition: background 0.2s;
+}
+
+.toggle-switch input:checked ~ .toggle-track { background: var(--accent); }
+
+.toggle-thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  background: var(--text);
+  border-radius: 50%;
+  transition: transform 0.2s;
+}
+
+.toggle-switch input:checked ~ .toggle-track .toggle-thumb { transform: translateX(20px); }
+
+/* ── Story Section Banner ── */
+.story-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md) var(--r-md) 0 0;
+  border-bottom: none;
+}
+
+.story-banner-title {
+  font-family: 'Cinzel', serif;
+  font-size: 16px;
+  color: var(--accent);
+  letter-spacing: 0.08em;
+}
+
+/* ── Sub-nav tabs ── */
+.sub-nav {
+  display: flex;
+  align-items: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-bottom: none;
+  padding: 0 16px;
+}
+
+.sub-nav-tabs {
+  display: flex;
+  flex: 1;
+  gap: 0;
+}
+
+.sub-tab {
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: color 0.15s, border-color 0.15s;
+  white-space: nowrap;
+  background: none;
+  border-top: none;
+  border-left: none;
+  border-right: none;
+  font-family: 'Inter', sans-serif;
+}
+
+.sub-tab:hover { color: var(--text); }
+.sub-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+.add-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: var(--accent);
+  color: var(--bg);
+  border: none;
+  border-radius: var(--r-sm);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+
+.add-btn:hover { background: var(--accent-hover); }
+.add-btn.hidden { visibility: hidden; }
+
+/* ── Content area ── */
+.content-area {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0 0 var(--r-md) var(--r-md);
+  padding: 20px;
+  min-height: 400px;
+}
+
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* ── Cards (Sessions) ── */
+.session-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 14px 16px;
+  margin-bottom: 12px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  position: relative;
+}
+
+.session-card:hover { background: var(--surface-raised); border-color: var(--accent); }
+
+.session-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.date-badge {
+  background: var(--surface-raised);
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.session-title { font-weight: 600; font-size: 15px; flex: 1; }
+
+.xp-badge {
+  background: rgba(139, 92, 246, 0.15);
+  color: var(--arcane);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.session-excerpt {
+  font-size: 14px;
+  color: var(--text-muted);
+  margin-top: 8px;
+  padding-left: 0;
+}
+
+.card-controls {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: none;
+  gap: 6px;
+  align-items: center;
+}
+
+.session-card:hover .card-controls.dm-only { display: flex; }
+
+.icon-btn {
+  width: 30px;
+  height: 30px;
+  border: none;
+  background: var(--surface-raised);
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  transition: color 0.15s, background 0.15s;
+}
+
+.icon-btn:hover { color: var(--text); background: var(--border); }
+.icon-btn.danger:hover { color: var(--danger); }
+
+/* ── Session Expand ── */
+.session-expand {
+  border-top: 1px solid var(--border);
+  margin-top: 12px;
+  padding-top: 12px;
+  display: none;
+}
+
+.session-expand.open { display: block; }
+
+.expand-section { margin-bottom: 12px; }
+.expand-label { font-size: 12px; font-weight: 500; color: var(--text-muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.05em; }
+.expand-text { font-size: 14px; color: var(--text); }
+
+.linked-entries { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.linked-entry-chip { font-size: 13px; color: var(--arcane); cursor: pointer; text-decoration: underline; }
+
+/* ── Quests ── */
+.quest-group { margin-bottom: 20px; }
+.quest-group-header { font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; padding-bottom: 8px; border-bottom: 1px solid var(--border); margin-bottom: 10px; }
+.quest-group-header.active { color: var(--accent); }
+.quest-group-header.completed { color: var(--success); }
+.quest-group-header.failed, .quest-group-header.abandoned { color: var(--text-muted); }
+
+.quest-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 12px 14px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: background 0.15s;
+  position: relative;
+}
+
+.quest-card:hover { background: var(--surface-raised); }
+
+.quest-card-header { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.quest-name { font-weight: 600; font-size: 15px; flex: 1; }
+.quest-giver { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+
+.status-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.status-badge.active { background: rgba(217,164,65,0.15); color: var(--accent); }
+.status-badge.completed { background: rgba(34,197,94,0.15); color: var(--success); }
+.status-badge.failed { background: rgba(239,68,68,0.15); color: var(--danger); }
+.status-badge.abandoned { background: rgba(42,50,63,0.5); color: var(--text-muted); }
+
+.obj-pill {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--text-muted);
+  background: var(--surface-raised);
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.quest-expand {
+  display: none;
+  border-top: 1px solid var(--border);
+  margin-top: 10px;
+  padding-top: 10px;
+}
+
+.quest-expand.open { display: block; }
+
+.objective-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 0;
+  font-size: 14px;
+}
+
+.objective-row.checked { color: var(--text-muted); text-decoration: line-through; }
+
+.objective-row input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.objective-row.player-view input[type="checkbox"] { pointer-events: none; opacity: 0.7; cursor: default; }
+
+.quest-controls { display: none; gap: 6px; align-items: center; margin-top: 8px; }
+.quest-card:hover .quest-controls.dm-only { display: flex; }
+
+.status-select {
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+}
+
+.status-select:focus { outline: 2px solid var(--accent); }
+
+/* ── NPCs ── */
+.filter-bar { display: flex; gap: 8px; margin-bottom: 16px; align-items: center; flex-wrap: wrap; }
+
+.filter-pill {
+  padding: 5px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: var(--surface-raised);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.filter-pill.active { background: rgba(217,164,65,0.2); border-color: var(--accent); color: var(--accent); }
+
+.npc-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+@media (max-width: 768px) { .npc-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 480px) { .npc-grid { grid-template-columns: 1fr; } }
+
+.npc-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 14px;
+  cursor: pointer;
+  transition: background 0.15s, opacity 0.2s;
+  position: relative;
+}
+
+.npc-card:hover { background: var(--surface-raised); }
+.npc-card.dead { opacity: 0.55; }
+
+.npc-name { font-weight: 600; font-size: 15px; margin-bottom: 2px; }
+.npc-role { font-size: 13px; color: var(--text-muted); }
+
+.faction-chip {
+  display: inline-block;
+  background: rgba(139,92,246,0.15);
+  color: var(--arcane);
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  margin-top: 6px;
+}
+
+.dead-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: rgba(239,68,68,0.15);
+  color: var(--danger);
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  margin-top: 6px;
+  margin-left: 4px;
+}
+
+.npc-hover-controls {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  display: none;
+  gap: 4px;
+}
+
+.npc-card:hover .npc-hover-controls.dm-only { display: flex; }
+
+/* ── Journal ── */
+.journal-layout { display: grid; grid-template-columns: 280px 1fr; gap: 0; }
+@media (max-width: 640px) { .journal-layout { grid-template-columns: 1fr; } }
+
+.journal-list { border-right: 1px solid var(--border); padding-right: 16px; }
+.journal-detail { padding-left: 16px; }
+
+.journal-row {
+  padding: 10px 8px;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  transition: background 0.15s;
+  margin-bottom: 4px;
+  position: relative;
+}
+
+.journal-row:hover { background: var(--surface-raised); }
+.journal-row.selected { background: var(--surface-raised); border-left: 2px solid var(--accent); padding-left: 6px; }
+
+.journal-row-title { font-size: 14px; font-weight: 500; }
+.journal-row-title.untitled { color: var(--text-faint); font-style: italic; }
+.journal-row-meta { display: flex; justify-content: space-between; margin-top: 2px; }
+.journal-row-date { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-muted); }
+.journal-row-session { font-size: 11px; font-style: italic; }
+.journal-row-session.linked { color: var(--accent); }
+.journal-row-session.unlinked { color: var(--text-faint); }
+
+.journal-detail-title { font-family: 'Cinzel', serif; font-size: 20px; color: var(--accent); margin-bottom: 4px; }
+.journal-detail-meta { font-size: 13px; color: var(--text-muted); margin-bottom: 16px; }
+.journal-detail-controls { display: flex; gap: 8px; margin-bottom: 16px; }
+
+/* ── Markdown render ── */
+.md-render h1 { font-family: 'Cinzel', serif; font-size: 20px; color: var(--accent); margin: 16px 0 8px; }
+.md-render h2 { font-family: 'Cinzel', serif; font-size: 17px; color: var(--accent); margin: 14px 0 6px; }
+.md-render h3 { font-size: 15px; font-weight: 600; margin: 12px 0 4px; }
+.md-render p { font-size: 14px; color: var(--text); margin-bottom: 10px; line-height: 1.6; }
+.md-render strong { color: var(--text); font-weight: 700; }
+.md-render em { font-style: italic; color: var(--text-muted); }
+.md-render ul { padding-left: 20px; font-size: 14px; margin-bottom: 10px; }
+.md-render li { margin-bottom: 4px; }
+
+/* ── Journal edit mode ── */
+.write-preview-tabs { display: flex; gap: 0; margin-bottom: 8px; }
+.wp-tab { padding: 6px 14px; font-size: 13px; color: var(--text-muted); cursor: pointer; border-bottom: 2px solid transparent; background: none; border-top: none; border-left: none; border-right: none; font-family: 'Inter', sans-serif; }
+.wp-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* ── Forms ── */
+.form-group { margin-bottom: 14px; }
+.form-label { font-size: 13px; font-weight: 500; color: var(--text-muted); margin-bottom: 5px; display: block; }
+.form-label .required { color: var(--danger); }
+.form-input, .form-textarea, .form-select {
+  width: 100%;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  color: var(--text);
+  font-size: 14px;
+  padding: 8px 12px;
+  font-family: 'Inter', sans-serif;
+  transition: border-color 0.15s;
+}
+.form-input:focus, .form-textarea:focus, .form-select:focus { outline: none; border-color: var(--accent); }
+.form-input.mono, .mono-input { font-family: 'JetBrains Mono', monospace; }
+.form-textarea { resize: vertical; min-height: 100px; }
+.form-select { cursor: pointer; }
+
+.objective-input-row { display: flex; gap: 6px; align-items: center; margin-bottom: 6px; }
+.objective-input-row input { flex: 1; }
+
+.alive-toggle-row { display: flex; align-items: center; gap: 10px; }
+.alive-label { font-size: 14px; color: var(--text); }
+
+/* ── Modal ── */
+.modal-scrim {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  z-index: 100;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.modal-scrim.open { display: flex; }
+
+.modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 24px;
+  width: 100%;
+  max-width: 520px;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+}
+
+.modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+.modal-title { font-family: 'Cinzel', serif; font-size: 18px; color: var(--accent); }
+.modal-close { background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 4px; border-radius: 4px; }
+.modal-close:hover { color: var(--text); }
+.modal-footer { display: flex; align-items: center; justify-content: flex-end; gap: 12px; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border); }
+.btn-cancel { background: none; border: none; color: var(--text-muted); font-size: 14px; cursor: pointer; font-family: 'Inter', sans-serif; }
+.btn-cancel:hover { color: var(--text); }
+.btn-primary { padding: 8px 20px; background: var(--accent); color: var(--bg); border: none; border-radius: var(--r-sm); font-size: 14px; font-weight: 600; cursor: pointer; font-family: 'Inter', sans-serif; }
+.btn-primary:hover { background: var(--accent-hover); }
+.btn-danger-solid { padding: 8px 20px; background: var(--danger); color: var(--text); border: none; border-radius: var(--r-sm); font-size: 14px; font-weight: 600; cursor: pointer; font-family: 'Inter', sans-serif; }
+
+/* ── Confirm dialog ── */
+.confirm-dialog {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 24px;
+  width: 100%;
+  max-width: 360px;
+  text-align: center;
+}
+
+.confirm-dialog p { font-size: 14px; color: var(--text-muted); margin-top: 8px; margin-bottom: 20px; }
+.confirm-dialog h3 { font-size: 16px; font-weight: 600; }
+.confirm-actions { display: flex; gap: 10px; justify-content: center; }
+
+/* ── Toast ── */
+.toast-container { position: fixed; top: 16px; right: 16px; z-index: 999; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
+
+.toast {
+  padding: 10px 16px;
+  border-radius: var(--r-sm);
+  font-size: 14px;
+  font-weight: 500;
+  animation: slideIn 0.2s ease;
+  pointer-events: none;
+  max-width: 320px;
+}
+
+.toast.success { background: var(--success); color: var(--bg); }
+.toast.danger { background: var(--danger); color: var(--text); }
+
+@keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+@keyframes pulse { 0%,100% { opacity: 0.7; } 50% { opacity: 1; } }
+
+/* ── Skeleton ── */
+.skeleton { background: var(--surface-raised); border-radius: 6px; animation: pulse 1.5s ease infinite; }
+
+/* ── Empty state ── */
+.empty-state { text-align: center; padding: 48px 16px; color: var(--text-faint); }
+.empty-state svg { margin: 0 auto 16px; display: block; opacity: 0.4; }
+.empty-state p { font-size: 15px; margin-bottom: 16px; }
+.empty-cta { padding: 8px 20px; background: var(--accent); color: var(--bg); border: none; border-radius: var(--r-sm); font-size: 14px; font-weight: 600; cursor: pointer; font-family: 'Inter', sans-serif; }
+.empty-cta:hover { background: var(--accent-hover); }
+
+/* ── Misc ── */
+.separator { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+.text-sm { font-size: 13px; }
+.text-muted { color: var(--text-muted); }
+.reward-row { font-size: 14px; font-style: italic; color: var(--text-muted); margin-top: 8px; }
+
+.inline-edit-textarea { width: 100%; background: var(--surface-raised); border: 1px solid var(--border); border-radius: var(--r-sm); color: var(--text); font-size: 14px; padding: 8px 12px; font-family: 'Inter', sans-serif; resize: vertical; min-height: 120px; }
+.inline-edit-textarea:focus { outline: none; border-color: var(--accent); }
+
+.dm-badge { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 4px; background: rgba(217,164,65,0.2); color: var(--accent); text-transform: uppercase; letter-spacing: 0.05em; }
+.player-badge { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 4px; background: rgba(139,92,246,0.2); color: var(--arcane); text-transform: uppercase; letter-spacing: 0.05em; }
+
+.footer { text-align: center; font-size: 12px; color: var(--text-faint); margin-top: 32px; padding-top: 16px; border-top: 1px solid var(--border); }
+</style>
+</head>
+<body>
+
+<!-- Toast container -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- ── MODALS ── -->
+
+<!-- Session Modal -->
+<div class="modal-scrim" id="sessionModal">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="sessionModalTitle">
+    <div class="modal-header">
+      <h2 class="modal-title" id="sessionModalTitle">Log Session</h2>
+      <button class="modal-close" onclick="closeModal('sessionModal')" aria-label="Close">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="sTitle">Title</label>
+      <input class="form-input" id="sTitle" type="text" placeholder="Session 3">
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="sDate">Date <span class="required">*</span></label>
+      <input class="form-input" id="sDate" type="date">
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="sXp">XP Awarded</label>
+      <input class="form-input mono-input" id="sXp" type="number" value="0" min="0">
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="sLoot">Notable Loot</label>
+      <input class="form-input" id="sLoot" type="text" placeholder="Healing Potion x2, 50gp">
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="sSummary">Summary (markdown)</label>
+      <textarea class="form-textarea" id="sSummary" rows="5" placeholder="What happened this session..."></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal('sessionModal')">Cancel</button>
+      <button class="btn-primary" onclick="saveSession()">Save Session</button>
+    </div>
+  </div>
+</div>
+
+<!-- Quest Modal -->
+<div class="modal-scrim" id="questModal">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="questModalTitle">
+    <div class="modal-header">
+      <h2 class="modal-title" id="questModalTitle">New Quest</h2>
+      <button class="modal-close" onclick="closeModal('questModal')" aria-label="Close">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="qName">Quest Name <span class="required">*</span></label>
+      <input class="form-input" id="qName" type="text" placeholder="Find the Sunken Temple">
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="qGiver">Quest Giver</label>
+      <input class="form-input" id="qGiver" type="text" placeholder="Elder Maren">
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="qStatus">Status</label>
+      <select class="form-select" id="qStatus">
+        <option value="active">Active</option>
+        <option value="completed">Completed</option>
+        <option value="failed">Failed</option>
+        <option value="abandoned">Abandoned</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="qDesc">Description (markdown)</label>
+      <textarea class="form-textarea" id="qDesc" rows="3" placeholder="The elder believes..."></textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Objectives</label>
+      <div id="qObjectiveList"></div>
+      <button type="button" onclick="addObjectiveInput()" style="font-size:13px;color:var(--arcane);background:none;border:none;cursor:pointer;padding:4px 0;font-family:Inter,sans-serif;">+ Add Objective</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="qReward">Reward</label>
+      <input class="form-input" id="qReward" type="text" placeholder="Ancient scroll">
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal('questModal')">Cancel</button>
+      <button class="btn-primary" onclick="saveQuest()">Save Quest</button>
+    </div>
+  </div>
+</div>
+
+<!-- NPC Modal -->
+<div class="modal-scrim" id="npcModal">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="npcModalTitle">
+    <div class="modal-header">
+      <h2 class="modal-title" id="npcModalTitle">Add NPC</h2>
+      <button class="modal-close" onclick="closeModal('npcModal')" aria-label="Close">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="nName">Name <span class="required">*</span></label>
+      <input class="form-input" id="nName" type="text" placeholder="Elder Maren">
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="nRole">Role / Occupation</label>
+      <input class="form-input" id="nRole" type="text" placeholder="Town Elder">
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="nFaction">Faction</label>
+      <input class="form-input" id="nFaction" type="text" placeholder="Thornhaven Council">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Status</label>
+      <div class="alive-toggle-row">
+        <label class="toggle-switch" for="nAlive">
+          <input type="checkbox" id="nAlive" checked>
+          <div class="toggle-track"><div class="toggle-thumb"></div></div>
+        </label>
+        <span class="alive-label">Alive</span>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="nNotes">Notes (markdown)</label>
+      <textarea class="form-textarea" id="nNotes" rows="4" placeholder="Personality, appearance, what the party knows..."></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal('npcModal')">Cancel</button>
+      <button class="btn-primary" onclick="saveNpc()">Save NPC</button>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm Dialog -->
+<div class="modal-scrim" id="confirmModal">
+  <div class="confirm-dialog" role="alertdialog">
+    <h3 id="confirmTitle">Delete item?</h3>
+    <p id="confirmText">This cannot be undone.</p>
+    <div class="confirm-actions">
+      <button class="btn-cancel" onclick="closeModal('confirmModal')">Cancel</button>
+      <button class="btn-danger-solid" id="confirmOkBtn">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── MAIN APP ── -->
+<div class="app">
+  <div class="app-header">
+    <div class="app-title">⚔ Campaign: Shattered Realms</div>
+    <div class="role-toggle">
+      <span id="roleLabel" class="player-badge">Player</span>
+      <label class="toggle-switch" title="Toggle DM mode">
+        <input type="checkbox" id="dmToggle" onchange="toggleRole()">
+        <div class="toggle-track"><div class="toggle-thumb"></div></div>
+      </label>
+      <span style="font-size:13px;color:var(--text-muted)">DM Mode</span>
+    </div>
+  </div>
+
+  <!-- Story Banner -->
+  <div class="story-banner">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+    <span class="story-banner-title">STORY</span>
+  </div>
+
+  <!-- Sub-nav -->
+  <div class="sub-nav">
+    <div class="sub-nav-tabs">
+      <button class="sub-tab active" onclick="switchTab('sessions')">Sessions</button>
+      <button class="sub-tab" onclick="switchTab('quests')">Quests</button>
+      <button class="sub-tab" onclick="switchTab('npcs')">NPCs</button>
+      <button class="sub-tab" onclick="switchTab('journal')">Journal</button>
+    </div>
+    <button class="add-btn hidden" id="addBtn" onclick="openAddModal()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      <span id="addBtnLabel">Log Session</span>
+    </button>
+  </div>
+
+  <!-- Content Area -->
+  <div class="content-area">
+
+    <!-- ── SESSIONS TAB ── -->
+    <div class="tab-panel active" id="panel-sessions">
+      <div id="sessionsList"></div>
+    </div>
+
+    <!-- ── QUESTS TAB ── -->
+    <div class="tab-panel" id="panel-quests">
+      <div id="questsList"></div>
+    </div>
+
+    <!-- ── NPCS TAB ── -->
+    <div class="tab-panel" id="panel-npcs">
+      <div class="filter-bar" id="npcFilterBar">
+        <button class="filter-pill active" onclick="filterNpcs('all', this)">All</button>
+        <button class="filter-pill" onclick="filterNpcs('alive', this)">Alive</button>
+        <button class="filter-pill" onclick="filterNpcs('dead', this)">Dead</button>
+      </div>
+      <div class="npc-grid" id="npcGrid"></div>
+    </div>
+
+    <!-- ── JOURNAL TAB ── -->
+    <div class="tab-panel" id="panel-journal">
+      <div class="journal-layout">
+        <div class="journal-list" id="journalList"></div>
+        <div class="journal-detail" id="journalDetail">
+          <div class="empty-state" style="padding: 32px 0;">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+            <p style="font-size:14px;margin-top:8px;">Select an entry to read</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="footer">
+    Sprint 5 — Story Module Prototype · Mock data, no backend · <strong>/proto</strong> output
+  </div>
+</div>
+
+<script>
+// ─────────────────────────────────────────
+// STATE
+// ─────────────────────────────────────────
+let isDM = false;
+let activeTab = 'sessions';
+let selectedJournalId = null;
+let pendingDelete = null;
+
+const state = {
+  sessions: [
+    {
+      id: 's3', title: 'Thornhaven Arrival', date: '2026-06-15',
+      xpAwarded: 250, notableLoot: 'Healing Potion x2, 50gp',
+      summary: 'The party arrived in the walled town of Thornhaven as the evening bell rang. They secured lodging at the Rusty Flagon and met Elder Maren who warned them about strange lights in the old barrow.'
+    },
+    {
+      id: 's2', title: 'The Barrow Descent', date: '2026-06-08',
+      xpAwarded: 400, notableLoot: 'Iron Key (ornate), Rune Rubbing',
+      summary: 'Descending into the ancient barrow, the party defeated 8 skeletons and found a sealed iron door covered in runes.'
+    }
+  ],
+  quests: [
+    {
+      id: 'q1', name: 'Find the Sunken Temple', giverName: 'Elder Maren', status: 'active',
+      description: 'Elder Maren believes an **ancient artifact** of great power lies beneath the sunken temple east of Thornhaven. She fears it will fall into the wrong hands.',
+      objectives: [
+        { text: 'Locate the temple entrance', checked: true },
+        { text: 'Defeat the door guardian', checked: true },
+        { text: 'Find the inner sanctum', checked: false },
+        { text: 'Retrieve the artifact', checked: false },
+        { text: 'Return to Elder Maren', checked: false }
+      ],
+      reward: 'Ancient scroll detailing the temple\'s history + 500gp'
+    },
+    {
+      id: 'q2', name: 'Clear the Barrow', giverName: 'Village Council', status: 'completed',
+      description: 'Strange undead have been emerging from the old barrow at night and threatening the farmsteads. The village council has offered a reward to clear them out.',
+      objectives: [
+        { text: 'Enter the barrow', checked: true },
+        { text: 'Find the source of the undead', checked: true },
+        { text: 'Destroy the bone altar', checked: true },
+        { text: 'Report back to the council', checked: true }
+      ],
+      reward: '200gp and the council\'s gratitude'
+    },
+    {
+      id: 'q3', name: 'Recover the Stolen Shipment', giverName: 'Merchant Dorin', status: 'failed',
+      description: 'Dorin\'s supply wagon was ambushed on the north road. He needs someone to track down the bandits and recover the stolen goods.',
+      objectives: [
+        { text: 'Find the bandit camp', checked: false },
+        { text: 'Defeat or negotiate with the bandits', checked: false },
+        { text: 'Return the shipment to Dorin', checked: false }
+      ],
+      reward: '150gp and a discount at Dorin\'s shop'
+    }
+  ],
+  npcs: [
+    {
+      id: 'n1', name: 'Elder Maren', role: 'Town Elder', faction: 'Thornhaven Council', isAlive: true,
+      notes: '**Wise and cautious.** Has lived in Thornhaven for 60 years. Knows the location of the temple but fears the party isn\'t ready. Speaks in measured, deliberate sentences.'
+    },
+    {
+      id: 'n2', name: 'Baron Voss', role: 'Villain', faction: 'Blackfang Brotherhood', isAlive: true,
+      notes: '**Ruthless and charming.** The true power behind the Blackfang Brotherhood. Currently holds the **Sigil of Opening** needed for the iron barrow door.'
+    },
+    {
+      id: 'n3', name: 'Kira', role: 'Assassin', faction: 'Blackfang Brotherhood', isAlive: false,
+      notes: 'Former assassin sent to eliminate the party. Defeated in the barrow entrance. Wore distinctive silver bracers marked with a serpent.'
+    }
+  ],
+  journal: [
+    {
+      id: 'j1', title: 'Thornhaven Lore', sessionId: 's3', sessionTitle: 'Session 3 — Thornhaven Arrival',
+      content: '## History\n\nThornhaven was founded three centuries ago by the Thornwood clan. The town\'s notable landmarks include the Elder\'s Hall and the Watchtower.\n\n## Current Politics\n\nThe **Thornhaven Council** holds nominal power, but rumours suggest the **Blackfang Brotherhood** has infiltrated the merchant guilds.',
+      createdAt: '2026-06-15'
+    },
+    {
+      id: 'j2', title: 'DM Notes', sessionId: null, sessionTitle: null,
+      content: 'The iron door in the barrow requires the **Sigil of Opening** — currently held by Baron Voss.\n\nThe party should not encounter Voss directly until Session 5 or 6.',
+      createdAt: '2026-06-08'
+    }
+  ]
+};
+
+// ─────────────────────────────────────────
+// ROLE TOGGLE
+// ─────────────────────────────────────────
+function toggleRole() {
+  isDM = document.getElementById('dmToggle').checked;
+  const lbl = document.getElementById('roleLabel');
+  lbl.textContent = isDM ? 'DM' : 'Player';
+  lbl.className = isDM ? 'dm-badge' : 'player-badge';
+  const addBtn = document.getElementById('addBtn');
+  addBtn.classList.toggle('hidden', !isDM);
+  renderAll();
+}
+
+// ─────────────────────────────────────────
+// TAB SWITCHING
+// ─────────────────────────────────────────
+const tabAddLabels = { sessions: 'Log Session', quests: 'New Quest', npcs: 'Add NPC', journal: 'New Entry' };
+
+function switchTab(tab) {
+  activeTab = tab;
+  document.querySelectorAll('.sub-tab').forEach((el, i) => {
+    const tabs = ['sessions','quests','npcs','journal'];
+    el.classList.toggle('active', tabs[i] === tab);
+  });
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('panel-' + tab).classList.add('active');
+  document.getElementById('addBtnLabel').textContent = tabAddLabels[tab];
+  renderAll();
+}
+
+function openAddModal() {
+  const modals = { sessions: 'sessionModal', quests: 'questModal', npcs: 'npcModal', journal: 'journalModal' };
+  if (activeTab === 'journal') { openJournalInlineCreate(); return; }
+  openModal(modals[activeTab]);
+  if (activeTab === 'sessions') {
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('sDate').value = today;
+    document.getElementById('sTitle').value = '';
+    document.getElementById('sXp').value = '0';
+    document.getElementById('sLoot').value = '';
+    document.getElementById('sSummary').value = '';
+  }
+  if (activeTab === 'quests') {
+    document.getElementById('qName').value = '';
+    document.getElementById('qGiver').value = '';
+    document.getElementById('qStatus').value = 'active';
+    document.getElementById('qDesc').value = '';
+    document.getElementById('qReward').value = '';
+    document.getElementById('qObjectiveList').innerHTML = '';
+    addObjectiveInput();
+  }
+  if (activeTab === 'npcs') {
+    document.getElementById('nName').value = '';
+    document.getElementById('nRole').value = '';
+    document.getElementById('nFaction').value = '';
+    document.getElementById('nNotes').value = '';
+    document.getElementById('nAlive').checked = true;
+  }
+}
+
+// ─────────────────────────────────────────
+// MODAL HELPERS
+// ─────────────────────────────────────────
+function openModal(id) {
+  document.getElementById(id).classList.add('open');
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+
+document.querySelectorAll('.modal-scrim').forEach(scrim => {
+  scrim.addEventListener('click', e => {
+    if (e.target === scrim) closeModal(scrim.id);
+  });
+});
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.modal-scrim.open').forEach(m => closeModal(m.id));
+  }
+});
+
+// ─────────────────────────────────────────
+// TOAST
+// ─────────────────────────────────────────
+function showToast(msg, type = 'success') {
+  const el = document.createElement('div');
+  el.className = 'toast ' + type;
+  el.textContent = msg;
+  document.getElementById('toastContainer').appendChild(el);
+  setTimeout(() => el.remove(), 2200);
+}
+
+// ─────────────────────────────────────────
+// DELETE
+// ─────────────────────────────────────────
+function confirmDelete(type, id, name) {
+  document.getElementById('confirmTitle').textContent = 'Delete "' + name + '"?';
+  document.getElementById('confirmText').textContent = 'This cannot be undone.';
+  pendingDelete = { type, id };
+  document.getElementById('confirmOkBtn').onclick = executeDelete;
+  openModal('confirmModal');
+}
+
+function executeDelete() {
+  if (!pendingDelete) return;
+  const { type, id } = pendingDelete;
+  if (type === 'session') {
+    const idx = state.sessions.findIndex(s => s.id === id);
+    if (idx !== -1) state.sessions.splice(idx, 1);
+    state.journal.forEach(j => { if (j.sessionId === id) { j.sessionId = null; j.sessionTitle = null; } });
+  } else if (type === 'quest') {
+    const idx = state.quests.findIndex(q => q.id === id);
+    if (idx !== -1) state.quests.splice(idx, 1);
+  } else if (type === 'npc') {
+    const idx = state.npcs.findIndex(n => n.id === id);
+    if (idx !== -1) state.npcs.splice(idx, 1);
+  } else if (type === 'journal') {
+    const idx = state.journal.findIndex(j => j.id === id);
+    if (idx !== -1) state.journal.splice(idx, 1);
+    if (selectedJournalId === id) selectedJournalId = null;
+  }
+  pendingDelete = null;
+  closeModal('confirmModal');
+  showToast('Deleted.', 'danger');
+  renderAll();
+}
+
+// ─────────────────────────────────────────
+// FORMAT HELPERS
+// ─────────────────────────────────────────
+function formatDate(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr + 'T00:00:00');
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+function renderMarkdown(text) {
+  if (!text) return '';
+  return text
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+    .replace(/\n\n/g, '</p><p>')
+    .replace(/\n/g, '<br>')
+    .replace(/^(.+)$/gm, (m) => m.startsWith('<') ? m : '<p>' + m + '</p>');
+}
+
+function svgIcon(name) {
+  const icons = {
+    pencil: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>',
+    trash: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>',
+    skull: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a9 9 0 0 1 9 9c0 3.5-2 6.5-5 8v1a2 2 0 0 1-2 2H10a2 2 0 0 1-2-2v-1c-3-1.5-5-4.5-5-8a9 9 0 0 1 9-9z"/><line x1="9" y1="17" x2="9" y2="19"/><line x1="15" y1="17" x2="15" y2="19"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/></svg>',
+    heart: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>',
+    check: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>',
+    x: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
+    scroll: '<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>',
+    map: '<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>',
+    user: '<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
+    book: '<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>'
+  };
+  return icons[name] || '';
+}
+
+// ─────────────────────────────────────────
+// SESSIONS
+// ─────────────────────────────────────────
+function renderSessions() {
+  const el = document.getElementById('sessionsList');
+  if (!state.sessions.length) {
+    el.innerHTML = '<div class="empty-state">' + svgIcon('scroll') + '<p>No sessions logged yet.</p>' +
+      (isDM ? '<button class="empty-cta" onclick="openAddModal()">Log First Session</button>' : '') + '</div>';
+    return;
+  }
+  el.innerHTML = state.sessions.map(s => {
+    const excerpt = s.summary ? (s.summary.length > 120 ? s.summary.slice(0, 120) + '…' : s.summary) : '';
+    const linkedJournals = state.journal.filter(j => j.sessionId === s.id);
+    return `
+    <div class="session-card" id="scard-${s.id}" onclick="toggleSessionExpand('${s.id}')">
+      <div class="session-card-header">
+        <div class="date-badge">${formatDate(s.date)}</div>
+        <div class="session-title">${s.title || 'Untitled Session'}</div>
+        <div class="xp-badge">${s.xpAwarded} XP</div>
+      </div>
+      ${excerpt ? `<div class="session-excerpt">${excerpt}</div>` : ''}
+      ${isDM ? `<div class="card-controls dm-only" onclick="event.stopPropagation()">
+        <button class="icon-btn" title="Edit" onclick="editSession('${s.id}')">${svgIcon('pencil')}</button>
+        <button class="icon-btn danger" title="Delete" onclick="confirmDelete('session','${s.id}','${s.title || 'Session'}')">${svgIcon('trash')}</button>
+      </div>` : ''}
+      <div class="session-expand" id="sexp-${s.id}">
+        ${s.notableLoot ? `<div class="expand-section"><div class="expand-label">Notable Loot</div><div class="expand-text">${s.notableLoot}</div></div>` : ''}
+        <div class="expand-section"><div class="expand-label">Summary</div><div class="expand-text md-render">${renderMarkdown(s.summary || '')}</div></div>
+        ${linkedJournals.length ? `<div class="expand-section"><div class="expand-label">Linked Journal Entries (${linkedJournals.length})</div><div class="linked-entries">${linkedJournals.map(j => `<span class="linked-entry-chip" onclick="event.stopPropagation();goToJournal('${j.id}')">${j.title || 'Untitled'}</span>`).join('')}</div></div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleSessionExpand(id) {
+  const exp = document.getElementById('sexp-' + id);
+  if (exp) exp.classList.toggle('open');
+}
+
+function editSession(id) {
+  const s = state.sessions.find(x => x.id === id);
+  if (!s) return;
+  document.getElementById('sTitle').value = s.title || '';
+  document.getElementById('sDate').value = s.date || '';
+  document.getElementById('sXp').value = s.xpAwarded || 0;
+  document.getElementById('sLoot').value = s.notableLoot || '';
+  document.getElementById('sSummary').value = s.summary || '';
+  document.getElementById('sessionModalTitle').textContent = 'Edit Session';
+  const btn = document.querySelector('#sessionModal .btn-primary');
+  btn.textContent = 'Save Changes';
+  btn.onclick = () => {
+    s.title = document.getElementById('sTitle').value || 'Untitled Session';
+    s.date = document.getElementById('sDate').value;
+    s.xpAwarded = parseInt(document.getElementById('sXp').value) || 0;
+    s.notableLoot = document.getElementById('sLoot').value;
+    s.summary = document.getElementById('sSummary').value;
+    closeModal('sessionModal');
+    document.getElementById('sessionModalTitle').textContent = 'Log Session';
+    btn.textContent = 'Save Session';
+    btn.onclick = saveSession;
+    renderSessions();
+    showToast('Session updated.');
+  };
+  openModal('sessionModal');
+}
+
+function saveSession() {
+  const title = document.getElementById('sTitle').value;
+  const date = document.getElementById('sDate').value;
+  if (!date) { showToast('Date is required.', 'danger'); return; }
+  const xp = parseInt(document.getElementById('sXp').value) || 0;
+  if (xp < 0) { showToast('XP must be 0 or more.', 'danger'); return; }
+  state.sessions.unshift({
+    id: 'sn' + Date.now(),
+    title: title || ('Session ' + (state.sessions.length + 1)),
+    date, xpAwarded: xp,
+    notableLoot: document.getElementById('sLoot').value,
+    summary: document.getElementById('sSummary').value
+  });
+  closeModal('sessionModal');
+  renderSessions();
+  showToast('Session logged!');
+}
+
+// ─────────────────────────────────────────
+// QUESTS
+// ─────────────────────────────────────────
+function renderQuests() {
+  const el = document.getElementById('questsList');
+  if (!state.quests.length) {
+    el.innerHTML = '<div class="empty-state">' + svgIcon('map') + '<p>No quests yet.</p>' +
+      (isDM ? '<button class="empty-cta" onclick="openAddModal()">Create First Quest</button>' : '') + '</div>';
+    return;
+  }
+  const groups = [
+    { status: 'active', label: 'Active Quests', cls: 'active' },
+    { status: 'completed', label: 'Completed', cls: 'completed' },
+    { status: 'failed', label: 'Failed', cls: 'failed' },
+    { status: 'abandoned', label: 'Abandoned', cls: 'abandoned' }
+  ];
+  let html = '';
+  groups.forEach(g => {
+    const quests = state.quests.filter(q => q.status === g.status);
+    if (!quests.length) return;
+    html += `<div class="quest-group"><div class="quest-group-header ${g.cls}">${g.label.toUpperCase()}</div>`;
+    quests.forEach(q => {
+      const checked = q.objectives.filter(o => o.checked).length;
+      const total = q.objectives.length;
+      html += `
+      <div class="quest-card" id="qcard-${q.id}" onclick="toggleQuestExpand('${q.id}')">
+        <div class="quest-card-header">
+          <div class="quest-name">${q.name}</div>
+          <span class="status-badge ${q.status}">${q.status.toUpperCase()}</span>
+          ${total > 0 ? `<span class="obj-pill">${checked}/${total} obj</span>` : ''}
+        </div>
+        ${q.giverName ? `<div class="quest-giver">from ${q.giverName}</div>` : ''}
+        <div class="quest-expand" id="qexp-${q.id}">
+          ${q.description ? `<div class="md-render" style="font-size:14px;margin-bottom:10px;">${renderMarkdown(q.description)}</div>` : ''}
+          ${total > 0 ? `<div style="margin-bottom:8px;">${q.objectives.map((o, oi) => `
+            <div class="objective-row ${o.checked ? 'checked' : ''} ${isDM ? '' : 'player-view'}" onclick="event.stopPropagation()">
+              <input type="checkbox" ${o.checked ? 'checked' : ''} ${isDM ? `onchange="toggleObjective('${q.id}',${oi},this)"` : 'disabled'}>
+              <span>${o.text}</span>
+            </div>`).join('')}</div>` : ''}
+          ${q.reward ? `<div class="reward-row">Reward: ${q.reward}</div>` : ''}
+        </div>
+        ${isDM ? `<div class="quest-controls dm-only" onclick="event.stopPropagation()">
+          <select class="status-select" onchange="changeQuestStatus('${q.id}', this.value)" onclick="event.stopPropagation()">
+            <option value="active" ${q.status==='active'?'selected':''}>Active</option>
+            <option value="completed" ${q.status==='completed'?'selected':''}>Completed</option>
+            <option value="failed" ${q.status==='failed'?'selected':''}>Failed</option>
+            <option value="abandoned" ${q.status==='abandoned'?'selected':''}>Abandoned</option>
+          </select>
+          <button class="icon-btn danger" title="Delete" onclick="confirmDelete('quest','${q.id}','${q.name}')">${svgIcon('trash')}</button>
+        </div>` : ''}
+      </div>`;
+    });
+    html += '</div>';
+  });
+  el.innerHTML = html;
+}
+
+function toggleQuestExpand(id) {
+  const exp = document.getElementById('qexp-' + id);
+  if (exp) exp.classList.toggle('open');
+}
+
+function toggleObjective(qId, oi, cb) {
+  const q = state.quests.find(x => x.id === qId);
+  if (!q) return;
+  q.objectives[oi].checked = cb.checked;
+  const row = cb.parentElement;
+  row.classList.toggle('checked', cb.checked);
+  showToast('Objective updated.');
+}
+
+function changeQuestStatus(qId, status) {
+  const q = state.quests.find(x => x.id === qId);
+  if (q) q.status = status;
+  renderQuests();
+  showToast('Quest status updated.');
+}
+
+function addObjectiveInput() {
+  const list = document.getElementById('qObjectiveList');
+  const row = document.createElement('div');
+  row.className = 'objective-input-row';
+  row.innerHTML = `<input class="form-input" type="text" placeholder="Objective..." style="flex:1;">
+    <button type="button" onclick="this.parentElement.remove()" style="background:none;border:none;color:var(--text-faint);cursor:pointer;padding:4px;">${svgIcon('x')}</button>`;
+  list.appendChild(row);
+}
+
+function saveQuest() {
+  const name = document.getElementById('qName').value.trim();
+  if (!name) { showToast('Quest name is required.', 'danger'); return; }
+  const objectives = Array.from(document.querySelectorAll('#qObjectiveList input[type="text"]'))
+    .map(i => ({ text: i.value.trim(), checked: false }))
+    .filter(o => o.text);
+  state.quests.unshift({
+    id: 'qn' + Date.now(), name,
+    giverName: document.getElementById('qGiver').value.trim() || null,
+    status: document.getElementById('qStatus').value,
+    description: document.getElementById('qDesc').value,
+    objectives,
+    reward: document.getElementById('qReward').value.trim() || null
+  });
+  closeModal('questModal');
+  renderQuests();
+  showToast('Quest created!');
+}
+
+// ─────────────────────────────────────────
+// NPCS
+// ─────────────────────────────────────────
+let npcFilter = 'all';
+
+function filterNpcs(filter, btn) {
+  npcFilter = filter;
+  document.querySelectorAll('#npcFilterBar .filter-pill').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  renderNpcs();
+}
+
+function renderNpcs() {
+  const el = document.getElementById('npcGrid');
+  let npcs = state.npcs;
+  if (npcFilter === 'alive') npcs = npcs.filter(n => n.isAlive);
+  if (npcFilter === 'dead') npcs = npcs.filter(n => !n.isAlive);
+  if (!npcs.length) {
+    el.innerHTML = '<div class="empty-state" style="grid-column:1/-1;">' + svgIcon('user') + '<p>No NPCs recorded yet.</p>' +
+      (isDM ? '<button class="empty-cta" onclick="openAddModal()">Add First NPC</button>' : '') + '</div>';
+    return;
+  }
+  el.innerHTML = npcs.map(n => `
+    <div class="npc-card ${n.isAlive ? '' : 'dead'}" id="ncard-${n.id}">
+      <div class="npc-name">${n.name}</div>
+      <div class="npc-role">${n.role || ''}</div>
+      <div>
+        ${n.faction ? `<span class="faction-chip">${n.faction}</span>` : ''}
+        ${!n.isAlive ? `<span class="dead-badge">${svgIcon('skull')} †</span>` : ''}
+      </div>
+      ${isDM ? `<div class="npc-hover-controls dm-only">
+        <button class="icon-btn ${n.isAlive ? 'danger' : ''}" title="${n.isAlive ? 'Mark dead' : 'Mark alive'}" onclick="toggleNpcAlive('${n.id}')">${n.isAlive ? svgIcon('skull') : svgIcon('heart')}</button>
+        <button class="icon-btn" title="Edit" onclick="editNpc('${n.id}')">${svgIcon('pencil')}</button>
+        <button class="icon-btn danger" title="Delete" onclick="confirmDelete('npc','${n.id}','${n.name}')">${svgIcon('trash')}</button>
+      </div>` : ''}
+    </div>`).join('');
+}
+
+function toggleNpcAlive(id) {
+  const n = state.npcs.find(x => x.id === id);
+  if (!n) return;
+  n.isAlive = !n.isAlive;
+  renderNpcs();
+  showToast(n.isAlive ? n.name + ' marked alive.' : n.name + ' marked dead.', n.isAlive ? 'success' : 'danger');
+}
+
+function editNpc(id) {
+  const n = state.npcs.find(x => x.id === id);
+  if (!n) return;
+  document.getElementById('nName').value = n.name;
+  document.getElementById('nRole').value = n.role || '';
+  document.getElementById('nFaction').value = n.faction || '';
+  document.getElementById('nNotes').value = n.notes || '';
+  document.getElementById('nAlive').checked = n.isAlive;
+  document.getElementById('npcModalTitle').textContent = 'Edit NPC';
+  const btn = document.querySelector('#npcModal .btn-primary');
+  btn.textContent = 'Save Changes';
+  btn.onclick = () => {
+    n.name = document.getElementById('nName').value.trim() || n.name;
+    n.role = document.getElementById('nRole').value.trim() || null;
+    n.faction = document.getElementById('nFaction').value.trim() || null;
+    n.notes = document.getElementById('nNotes').value;
+    n.isAlive = document.getElementById('nAlive').checked;
+    closeModal('npcModal');
+    document.getElementById('npcModalTitle').textContent = 'Add NPC';
+    btn.textContent = 'Save NPC';
+    btn.onclick = saveNpc;
+    renderNpcs();
+    showToast('NPC updated.');
+  };
+  openModal('npcModal');
+}
+
+function saveNpc() {
+  const name = document.getElementById('nName').value.trim();
+  if (!name) { showToast('NPC name is required.', 'danger'); return; }
+  state.npcs.push({
+    id: 'nn' + Date.now(), name,
+    role: document.getElementById('nRole').value.trim() || null,
+    faction: document.getElementById('nFaction').value.trim() || null,
+    notes: document.getElementById('nNotes').value,
+    isAlive: document.getElementById('nAlive').checked
+  });
+  closeModal('npcModal');
+  renderNpcs();
+  showToast('NPC added!');
+}
+
+// ─────────────────────────────────────────
+// JOURNAL
+// ─────────────────────────────────────────
+let journalEditMode = false;
+
+function renderJournal() {
+  renderJournalList();
+  renderJournalDetail();
+}
+
+function renderJournalList() {
+  const el = document.getElementById('journalList');
+  if (!state.journal.length) {
+    el.innerHTML = '<div class="empty-state">' + svgIcon('book').replace('width="40"', 'width="32"').replace('height="40"', 'height="32"') + '<p style="font-size:14px">No entries yet.</p>' +
+      (isDM ? '<button class="empty-cta" onclick="openJournalInlineCreate()" style="font-size:13px;padding:6px 14px;">New Entry</button>' : '') + '</div>';
+    return;
+  }
+  el.innerHTML = state.journal.map(j => `
+    <div class="journal-row ${j.id === selectedJournalId ? 'selected' : ''}" onclick="selectJournal('${j.id}')">
+      <div class="journal-row-title ${j.title ? '' : 'untitled'}">${j.title || 'Untitled'}</div>
+      <div class="journal-row-meta">
+        <span class="journal-row-date">${formatDate(j.createdAt)}</span>
+        <span class="journal-row-session ${j.sessionId ? 'linked' : 'unlinked'}">${j.sessionTitle ? j.sessionTitle.split('—')[0].trim() : '—'}</span>
+      </div>
+    </div>`).join('');
+}
+
+function selectJournal(id) {
+  selectedJournalId = id;
+  journalEditMode = false;
+  renderJournal();
+}
+
+function renderJournalDetail() {
+  const el = document.getElementById('journalDetail');
+  if (!selectedJournalId) {
+    el.innerHTML = '<div class="empty-state" style="padding:32px 0;"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg><p style="font-size:14px;margin-top:8px;">Select an entry to read</p></div>';
+    return;
+  }
+  const j = state.journal.find(x => x.id === selectedJournalId);
+  if (!j) { selectedJournalId = null; renderJournal(); return; }
+  if (journalEditMode && isDM) {
+    el.innerHTML = `
+      <div class="journal-detail-title">${j.title || 'Untitled'}</div>
+      <div class="write-preview-tabs">
+        <button class="wp-tab active" id="wpWrite" onclick="showJournalWrite()">Write</button>
+        <button class="wp-tab" id="wpPreview" onclick="showJournalPreview()">Preview</button>
+      </div>
+      <div id="journalWriteArea">
+        <textarea class="inline-edit-textarea" id="jEditContent" rows="8">${j.content}</textarea>
+      </div>
+      <div id="journalPreviewArea" class="md-render" style="display:none;font-size:14px;padding:10px;background:var(--surface-raised);border-radius:6px;min-height:120px;">${renderMarkdown(j.content)}</div>
+      <div style="display:flex;gap:8px;margin-top:12px;">
+        <button class="btn-primary" onclick="saveJournalEdit('${j.id}')">Save</button>
+        <button class="btn-cancel" onclick="journalEditMode=false;renderJournalDetail()">Cancel</button>
+      </div>`;
+  } else {
+    el.innerHTML = `
+      <div class="journal-detail-title">${j.title || 'Untitled'}</div>
+      <div class="journal-detail-meta">
+        ${formatDate(j.createdAt)}${j.sessionTitle ? ' · ' + j.sessionTitle : ''}
+      </div>
+      ${isDM ? `<div class="journal-detail-controls">
+        <button class="icon-btn" title="Edit" onclick="journalEditMode=true;renderJournalDetail()">${svgIcon('pencil')} <span style="font-size:13px;color:var(--text-muted);margin-left:4px;">Edit</span></button>
+        <button class="icon-btn danger" title="Delete" onclick="confirmDelete('journal','${j.id}','${j.title||'entry'}')">${svgIcon('trash')} <span style="font-size:13px;color:var(--text-muted);margin-left:4px;">Delete</span></button>
+      </div>` : ''}
+      <div class="md-render">${renderMarkdown(j.content)}</div>`;
+  }
+}
+
+function showJournalWrite() {
+  document.getElementById('journalWriteArea').style.display = '';
+  document.getElementById('journalPreviewArea').style.display = 'none';
+  document.getElementById('wpWrite').classList.add('active');
+  document.getElementById('wpPreview').classList.remove('active');
+}
+
+function showJournalPreview() {
+  const content = document.getElementById('jEditContent').value;
+  document.getElementById('journalPreviewArea').innerHTML = renderMarkdown(content);
+  document.getElementById('journalWriteArea').style.display = 'none';
+  document.getElementById('journalPreviewArea').style.display = '';
+  document.getElementById('wpPreview').classList.add('active');
+  document.getElementById('wpWrite').classList.remove('active');
+}
+
+function saveJournalEdit(id) {
+  const j = state.journal.find(x => x.id === id);
+  if (!j) return;
+  const content = document.getElementById('jEditContent').value.trim();
+  if (!content) { showToast('Content is required.', 'danger'); return; }
+  j.content = content;
+  journalEditMode = false;
+  renderJournal();
+  showToast('Entry saved.');
+}
+
+function openJournalInlineCreate() {
+  const id = 'jn' + Date.now();
+  const today = new Date().toISOString().split('T')[0];
+  state.journal.unshift({ id, title: '', sessionId: null, sessionTitle: null, content: '', createdAt: today });
+  selectedJournalId = id;
+  journalEditMode = true;
+  renderJournal();
+  showToast('New entry created — start writing!');
+}
+
+function goToJournal(id) {
+  switchTab('journal');
+  selectedJournalId = id;
+  renderJournal();
+}
+
+// ─────────────────────────────────────────
+// RENDER ALL
+// ─────────────────────────────────────────
+function renderAll() {
+  renderSessions();
+  renderQuests();
+  renderNpcs();
+  renderJournal();
+}
+
+// ─────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────
+renderAll();
+</script>
+</body>
+</html>

@@ -22,22 +22,26 @@ model Campaign {
   sessions       PlayerSession[]
   characters     Character[] // Sprint 2 — campaign-scoped PCs/NPCs (back-relation, no new column)
   encounters     Encounter[] // Sprint 4 — back-relation (no new column)
+  storySessions  Session[] // Sprint 5 — Story sessions (back-relation, no new column)
+  quests         Quest[] // Sprint 5 — back-relation
+  npcs           Npc[] // Sprint 5 — back-relation
+  journalEntries JournalEntry[] // Sprint 5 — back-relation
 
   @@index([inviteCode])
 }
 
 model PlayerSession {
-  id           String   @id @default(cuid())
+  id           String     @id @default(cuid())
   campaignId   String
-  campaign     Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  campaign     Campaign   @relation(fields: [campaignId], references: [id], onDelete: Cascade)
   displayName  String
   role         String // "dm" | "player"
   sessionToken String // secret — reconnect identity, never broadcast
   characterId  String?    @unique // Sprint 2 — now a real 1:1 FK→Character (the claim); SetNull on char delete
   character    Character? @relation("SessionClaim", fields: [characterId], references: [id], onDelete: SetNull)
-  isConnected  Boolean  @default(true)
-  connectedAt  DateTime @default(now())
-  lastSeenAt   DateTime @default(now())
+  isConnected  Boolean    @default(true)
+  connectedAt  DateTime   @default(now())
+  lastSeenAt   DateTime   @default(now())
 
   @@unique([campaignId, displayName]) // names unique WITHIN a campaign, not globally
   @@index([campaignId])
@@ -276,6 +280,7 @@ model Character {
   spells     CharacterSpell[]
   items      CharacterItem[] // Sprint 3 — back-relation
   combatants Combatant[] // Sprint 4 — back-relation (no new column)
+  npcs       Npc[] // Sprint 5 — back-relation (Npc.characterId → Character, SetNull)
 
   @@index([campaignId])
   @@index([ownerSessionId])
@@ -308,15 +313,15 @@ model CharacterSpell {
 // See docs/modules/combat/SA_BLUEPRINT.md §2.
 
 model Encounter {
-  id                String      @id @default(cuid())
+  id                String   @id @default(cuid())
   campaignId        String
   name              String?
-  status            String      @default("active") // "active" | "ended"
-  round             Int         @default(1)
-  currentTurnIndex  Int         @default(0)
-  allowPlayerHpEdit Boolean     @default(false)
-  createdAt         DateTime    @default(now())
-  updatedAt         DateTime    @updatedAt
+  status            String   @default("active") // "active" | "ended"
+  round             Int      @default(1)
+  currentTurnIndex  Int      @default(0)
+  allowPlayerHpEdit Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
   campaign   Campaign    @relation(fields: [campaignId], references: [id], onDelete: Cascade)
   combatants Combatant[]
@@ -325,7 +330,7 @@ model Encounter {
 }
 
 model Combatant {
-  id              String    @id @default(cuid())
+  id              String   @id @default(cuid())
   encounterId     String
   campaignId      String
   type            String // "character" | "monster"
@@ -333,16 +338,16 @@ model Combatant {
   monsterSlug     String?
   name            String
   initiative      Int?
-  initiativeOrder Int       @default(0)
+  initiativeOrder Int      @default(0)
   maxHp           Int
   currentHp       Int
-  conditionsJson  String    @default("[]")
-  removed         Boolean   @default(false)
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  conditionsJson  String   @default("[]")
+  removed         Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
-  encounter  Encounter  @relation(fields: [encounterId], references: [id], onDelete: Cascade)
-  character  Character? @relation(fields: [characterId], references: [id], onDelete: SetNull)
+  encounter Encounter  @relation(fields: [encounterId], references: [id], onDelete: Cascade)
+  character Character? @relation(fields: [characterId], references: [id], onDelete: SetNull)
 
   @@unique([encounterId, characterId])
   @@index([encounterId])
@@ -362,4 +367,83 @@ model CharacterItem {
 
   @@unique([characterId, itemSlug]) // one row per item per character; stack with quantity
   @@index([characterId])
+}
+
+// ── Story (Sprint 5) ────────────────────────────────────────────────
+// Async narrative records — sessions, quests, NPCs, journal. REST-only
+// (no Socket.io). All campaign-scoped (multi-tenancy via campaignId).
+// markdown stored RAW; rendered client-side (no server HTML). objectivesJson
+// mirrors the conditionsJson JSON-string pattern. See docs/program/DATA_MODEL.md
+// + docs/modules/story/SA_BLUEPRINT.md §2.
+
+model Session {
+  id          String   @id @default(cuid())
+  campaignId  String
+  title       String? // app-validates ≤120 if provided
+  date        DateTime // play date — future dates allowed (DM may pre-log)
+  summary     String? // raw markdown
+  xpAwarded   Int      @default(0) // app-validates ≥0
+  notableLoot String? // free text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  campaign       Campaign       @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  journalEntries JournalEntry[] // delete session → JournalEntry.sessionId set null
+
+  @@index([campaignId])
+  @@index([campaignId, date]) // list sorted by date desc
+}
+
+model Quest {
+  id             String   @id @default(cuid())
+  campaignId     String
+  name           String // required, app-validates ≤120 non-empty
+  description    String? // raw markdown
+  giverName      String? // free text NPC name (NOT an FK)
+  status         String   @default("active") // active|completed|failed|abandoned
+  objectivesJson String   @default("[]") // JSON: [{text:string, checked:boolean}]
+  reward         String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@index([campaignId])
+  @@index([campaignId, status]) // filter by status
+}
+
+model Npc {
+  id          String   @id @default(cuid())
+  campaignId  String
+  characterId String? // optional link to a Character stat block; SetNull on char delete
+  name        String // required, app-validates ≤100 non-empty
+  role        String? // ≤80
+  faction     String? // ≤80
+  notes       String? // raw markdown
+  isAlive     Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  campaign  Campaign   @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  character Character? @relation(fields: [characterId], references: [id], onDelete: SetNull)
+
+  @@index([campaignId])
+  @@index([campaignId, faction])
+  @@index([campaignId, isAlive])
+}
+
+model JournalEntry {
+  id         String   @id @default(cuid())
+  campaignId String
+  sessionId  String? // optional link to a Session; SetNull on session delete
+  title      String? // ≤200
+  content    String // raw markdown, required (min 1 char)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  session  Session? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+
+  @@index([campaignId])
+  @@index([campaignId, createdAt]) // reverse-chron list
 }
