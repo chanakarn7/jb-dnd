@@ -7,7 +7,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, UserPlus, ChevronRight, ChevronLeft, Shield, Heart, BookOpen, Sparkles } from "lucide-react";
+import { ArrowLeft, UserPlus, ChevronRight, ChevronLeft, Shield, ShieldCheck, Heart, BookOpen, Sparkles, Link as LinkIcon, Link2, Trash2, Plus, Package } from "lucide-react";
 import { useCampaign } from "../providers";
 import { ABILITY_INFO, SKILL_INFO, ABILITY_KEYS, type AbilityKey } from "@/lib/characters/glossary";
 import {
@@ -18,6 +18,7 @@ import type {
   ClassListItem, ClassDetail, SubclassListItem, RaceListItem, RaceDetail,
   BackgroundListItem, CharacterListItem, CharacterDetail,
 } from "@/lib/characters/types";
+import type { InventoryView, InventoryItemView } from "@/lib/inventory/types";
 
 const sign = (n: number) => (n >= 0 ? `+${n}` : `${n}`);
 
@@ -385,11 +386,15 @@ function Sheet({ campaignId, id, onDeleted }: { campaignId?: string; id: string;
   const [c, setC] = useState<CharacterDetail | null>(null);
   const [status, setStatus] = useState<"loading" | "ok" | "error">("loading");
   const [saving, setSaving] = useState(false);
+  const [inv, setInv] = useState<InventoryView | null>(null);
+  const [addItemOpen, setAddItemOpen] = useState(false);
 
   function load() {
-    fetch(`/api/characters/${id}`, { headers: authHeaders(campaignId) })
-      .then((r) => (r.ok ? r.json() : Promise.reject()))
-      .then((d) => { setC(d); setStatus("ok"); })
+    Promise.all([
+      fetch(`/api/characters/${id}`, { headers: authHeaders(campaignId) }).then((r) => (r.ok ? r.json() : Promise.reject())),
+      fetch(`/api/characters/${id}/items`, { headers: authHeaders(campaignId) }).then((r) => (r.ok ? r.json() : null)),
+    ])
+      .then(([char, inventory]) => { setC(char); setInv(inventory); setStatus("ok"); })
       .catch(() => setStatus("error"));
   }
   useEffect(load, [id, campaignId]);
@@ -411,6 +416,32 @@ function Sheet({ campaignId, id, onDeleted }: { campaignId?: string; id: string;
     if (res.ok) setC(await res.json());
     setSaving(false);
   }
+
+  async function addItem(itemSlug: string) {
+    setSaving(true);
+    const res = await fetch(`/api/characters/${id}/items`, { method: "POST", headers: authHeaders(campaignId), body: JSON.stringify({ itemSlug }) });
+    if (res.ok) { setInv(await res.json()); setAddItemOpen(false); }
+    setSaving(false);
+  }
+  async function patchItem(itemId: string, body: Record<string, unknown>) {
+    setSaving(true);
+    const res = await fetch(`/api/characters/${id}/items/${itemId}`, { method: "PATCH", headers: authHeaders(campaignId), body: JSON.stringify(body) });
+    if (res.ok) setInv(await res.json());
+    setSaving(false);
+  }
+  async function deleteItem(itemId: string) {
+    setSaving(true);
+    const res = await fetch(`/api/characters/${id}/items/${itemId}`, { method: "DELETE", headers: authHeaders(campaignId) });
+    if (res.ok) setInv(await res.json());
+    setSaving(false);
+  }
+  async function saveCurrency(currency: Record<string, number>) {
+    setSaving(true);
+    const res = await fetch(`/api/characters/${id}/currency`, { method: "PATCH", headers: authHeaders(campaignId), body: JSON.stringify(currency) });
+    if (res.ok) { const r = await res.json(); setInv((prev) => prev ? { ...prev, currency: r.currency } : null); }
+    setSaving(false);
+  }
+
   const [pickerOpen, setPickerOpen] = useState(false);
 
   if (status === "loading") return <div className="text-muted py-12 text-center">กำลังโหลด…</div>;
@@ -501,6 +532,15 @@ function Sheet({ campaignId, id, onDeleted }: { campaignId?: string; id: string;
       )}
 
       {pickerOpen && <SpellPicker className={c.className} owned={new Set(c.spells.map((s) => s.slug))} onAdd={(slug) => spellOp("add", slug)} onClose={() => setPickerOpen(false)} />}
+
+      {/* ── Inventory (Sprint 3) ── */}
+      {inv ? (
+        <>
+          <InventorySection inv={inv} onEquip={(itemId, v) => patchItem(itemId, { equipped: v })} onAttune={(itemId, v) => patchItem(itemId, { attuned: v })} onQty={(itemId, v) => patchItem(itemId, { quantity: v })} onDelete={deleteItem} onAdd={() => setAddItemOpen(true)} />
+          <CurrencyStrip currency={inv.currency} onSave={saveCurrency} />
+          {addItemOpen && <AddItemModal owned={new Set(inv.items.map((i) => i.itemSlug))} onAdd={addItem} onClose={() => setAddItemOpen(false)} />}
+        </>
+      ) : null}
 
       <Section title="Features">
         <ul className="space-y-1.5">{c.features.map((f, i) => (
@@ -598,6 +638,194 @@ function Row({ on, label, ab, mod, title }: { on: boolean; label: string; ab?: s
       <span className={on ? "font-semibold" : "text-muted"}>{label}</span>
       {ab && <span className="font-mono text-[10px] text-faint">{ab}</span>}
       <span className={`ml-auto font-mono tnum ${on ? "" : "text-faint"}`}>{sign(mod)}</span>
+    </div>
+  );
+}
+
+// ──────────────── INVENTORY ────────────────
+function InventorySection({ inv, onEquip, onAttune, onQty, onDelete, onAdd }: {
+  inv: InventoryView;
+  onEquip: (id: string, v: boolean) => void;
+  onAttune: (id: string, v: boolean) => void;
+  onQty: (id: string, v: number) => void;
+  onDelete: (id: string) => void;
+  onAdd: () => void;
+}) {
+  return (
+    <section>
+      <div className="flex items-center justify-between mb-2">
+        <h3 className="text-xs text-faint uppercase tracking-wider flex items-center gap-1.5">
+          <Package className="w-3.5 h-3.5" /> ของในกระเป๋า
+          <span className={`ml-2 font-mono tnum text-[11px] px-1.5 py-0.5 rounded border ${inv.attunedCount >= inv.attunementCap ? "border-warning/60 text-warning" : "border-border text-muted"}`}>
+            Attuned {inv.attunedCount}/{inv.attunementCap}
+          </span>
+        </h3>
+        <button onClick={onAdd} className="text-sm text-accent hover:text-accent-hover flex items-center gap-1">
+          <Plus className="w-3.5 h-3.5" /> เพิ่มไอเทม
+        </button>
+      </div>
+
+      {inv.items.length === 0 ? (
+        <div className="text-center py-6 border border-dashed border-border rounded-xl text-faint text-sm">ยังไม่มีของในกระเป๋า — กดปุ่มเพิ่มไอเทม</div>
+      ) : (
+        <ul className="space-y-1.5">
+          {inv.items.map((item) => <ItemRow key={item.id} item={item} atCap={inv.attunedCount >= inv.attunementCap && !item.attuned} onEquip={onEquip} onAttune={onAttune} onQty={onQty} onDelete={onDelete} />)}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+function ItemRow({ item, atCap, onEquip, onAttune, onQty, onDelete }: {
+  item: InventoryItemView; atCap: boolean;
+  onEquip: (id: string, v: boolean) => void;
+  onAttune: (id: string, v: boolean) => void;
+  onQty: (id: string, v: number) => void;
+  onDelete: (id: string) => void;
+}) {
+  const [confirmDel, setConfirmDel] = useState(false);
+  return (
+    <li className={`flex flex-wrap items-center gap-2 text-sm bg-surface-raised border rounded-lg px-3 py-2 ${item.missingRef ? "border-warning/40 opacity-70" : "border-border"}`}>
+      <div className="flex-1 min-w-0">
+        <span className="font-medium truncate">{item.name}</span>
+        {item.missingRef && <span className="ml-1 text-[10px] text-warning">(ไม่พบใน reference)</span>}
+        <span className="ml-2 text-[10px] text-faint border border-border rounded px-1">{item.type}</span>
+        {item.rarity !== "mundane" && item.rarity !== "unknown" && (
+          <span className="ml-1 text-[10px] text-arcane border border-arcane/40 rounded px-1">{item.rarity}</span>
+        )}
+        {item.requiresAttunement && <span className="ml-1 text-[10px] text-accent border border-accent/40 rounded px-1">attune</span>}
+      </div>
+
+      {/* qty stepper */}
+      <div className="flex items-center gap-1">
+        <button onClick={() => item.quantity > 1 && onQty(item.id, item.quantity - 1)} className="w-6 h-6 rounded border border-border text-xs disabled:opacity-30" disabled={item.quantity <= 1}>−</button>
+        <span className="font-mono tnum text-xs w-5 text-center">{item.quantity}</span>
+        <button onClick={() => onQty(item.id, item.quantity + 1)} className="w-6 h-6 rounded border border-border text-xs">+</button>
+      </div>
+
+      {/* equip toggle — icon + label (not color-only, per DESIGN_SYSTEM) */}
+      <button
+        onClick={() => onEquip(item.id, !item.equipped)}
+        title={item.equipped ? "สวมอยู่ — คลิกเพื่อถอด" : "ยังไม่ได้สวม — คลิกเพื่อสวม"}
+        className={`flex items-center gap-1 text-[11px] px-2 py-1 rounded border ${item.equipped ? "border-success/60 text-success bg-success/10" : "border-border text-faint"}`}>
+        {item.equipped ? <ShieldCheck className="w-3 h-3" /> : <Shield className="w-3 h-3" />}
+        {item.equipped ? "equipped" : "equip"}
+      </button>
+
+      {/* attune toggle — only for items that require it */}
+      {item.requiresAttunement && (
+        <button
+          onClick={() => !atCap || item.attuned ? onAttune(item.id, !item.attuned) : undefined}
+          disabled={atCap && !item.attuned}
+          title={item.attuned ? "ผูกพลังอยู่ — คลิกเพื่อยกเลิก" : atCap ? "attune ได้สูงสุด 3 ชิ้น" : "คลิกเพื่อ attune"}
+          className={`flex items-center gap-1 text-[11px] px-2 py-1 rounded border ${item.attuned ? "border-arcane/60 text-arcane bg-arcane/10" : atCap ? "border-border text-faint opacity-40 cursor-not-allowed" : "border-border text-faint"}`}>
+          {item.attuned ? <Link2 className="w-3 h-3" /> : <LinkIcon className="w-3 h-3" />}
+          {item.attuned ? "attuned" : "attune"}
+        </button>
+      )}
+
+      {/* delete */}
+      {confirmDel ? (
+        <span className="flex items-center gap-1 text-[11px]">
+          <button onClick={() => onDelete(item.id)} className="text-danger hover:opacity-80 px-2 py-1 rounded border border-danger/40">ยืนยัน</button>
+          <button onClick={() => setConfirmDel(false)} className="text-faint px-2 py-1 rounded border border-border">ยกเลิก</button>
+        </span>
+      ) : (
+        <button onClick={() => setConfirmDel(true)} title="ลบไอเทม" className="text-faint hover:text-danger"><Trash2 className="w-3.5 h-3.5" /></button>
+      )}
+    </li>
+  );
+}
+
+function CurrencyStrip({ currency, onSave }: { currency: InventoryView["currency"]; onSave: (c: Record<string, number>) => void }) {
+  type CurrKey = "pp" | "gp" | "ep" | "sp" | "cp";
+  const DENOMS: { key: CurrKey; label: string; ratio: number }[] = [
+    { key: "pp", label: "pp", ratio: 10 },
+    { key: "gp", label: "gp", ratio: 1 },
+    { key: "ep", label: "ep", ratio: 0.5 },
+    { key: "sp", label: "sp", ratio: 0.1 },
+    { key: "cp", label: "cp", ratio: 0.01 },
+  ];
+  const [draft, setDraft] = useState({ ...currency });
+  const approxGp = DENOMS.reduce((sum, d) => sum + draft[d.key] * d.ratio, 0);
+
+  // Keep draft in sync when parent reloads (e.g. after a character switch).
+  useEffect(() => { setDraft({ ...currency }); }, [currency.pp, currency.gp, currency.ep, currency.sp, currency.cp]);
+
+  return (
+    <section>
+      <div className="flex items-center justify-between mb-2">
+        <h3 className="text-xs text-faint uppercase tracking-wider">เงิน</h3>
+        <span className="text-[11px] text-muted font-mono tnum">≈ {approxGp.toFixed(2)} gp</span>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {DENOMS.map(({ key, label }) => (
+          <label key={key} className="flex flex-col items-center gap-0.5">
+            <span className="text-[10px] text-faint uppercase">{label}</span>
+            <input
+              type="number" min={0} value={draft[key]}
+              onChange={(e) => setDraft((p) => ({ ...p, [key]: Math.max(0, parseInt(e.target.value, 10) || 0) }))}
+              onBlur={() => onSave(draft)}
+              className="w-16 text-center font-mono tnum text-sm bg-bg border border-border rounded-md px-2 py-1"
+            />
+          </label>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+interface ItemRow { slug: string; name: string; type: string; rarity: string; requiresAttunement: boolean }
+function AddItemModal({ owned, onAdd, onClose }: { owned: Set<string>; onAdd: (slug: string) => void; onClose: () => void }) {
+  const [all, setAll] = useState<ItemRow[] | null>(null);
+  const [q, setQ] = useState("");
+  const [typeFilter, setTypeFilter] = useState("");
+  useEffect(() => { fetch("/api/reference/items").then((r) => r.json()).then(setAll).catch(() => setAll([])); }, []);
+  const types = useMemo(() => all ? [...new Set(all.map((i) => i.type))].sort() : [], [all]);
+  const list = useMemo(() => {
+    if (!all) return [];
+    const needle = q.trim().toLowerCase();
+    return all
+      .filter((i) => !typeFilter || i.type === typeFilter)
+      .filter((i) => !needle || i.name.toLowerCase().includes(needle))
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .slice(0, 150);
+  }, [all, q, typeFilter]);
+
+  return (
+    <div className="fixed inset-0 z-50">
+      <div className="absolute inset-0 bg-black/60" onClick={onClose} />
+      <div role="dialog" aria-modal="true" className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[92%] max-w-md max-h-[80dvh] flex flex-col rounded-2xl border border-border bg-surface p-5">
+        <div className="flex items-center justify-between mb-3">
+          <h4 className="font-display text-lg">เพิ่มไอเทม</h4>
+          <button onClick={onClose} className="text-muted hover:text-text">✕</button>
+        </div>
+        <input value={q} onChange={(e) => setQ(e.target.value)} autoFocus placeholder="ค้นชื่อไอเทม…" className="w-full rounded-md bg-bg border border-border px-3 py-2 text-sm mb-2" />
+        {types.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mb-2">
+            <button onClick={() => setTypeFilter("")} className={`text-[11px] px-2 py-0.5 rounded border ${!typeFilter ? "border-accent text-accent" : "border-border text-faint"}`}>ทั้งหมด</button>
+            {types.map((t) => (
+              <button key={t} onClick={() => setTypeFilter(typeFilter === t ? "" : t)} className={`text-[11px] px-2 py-0.5 rounded border ${typeFilter === t ? "border-accent text-accent" : "border-border text-faint"}`}>{t}</button>
+            ))}
+          </div>
+        )}
+        <div className="overflow-y-auto flex-1 space-y-1">
+          {all === null ? <p className="text-muted text-sm py-4 text-center">กำลังโหลด…</p>
+            : list.length === 0 ? <p className="text-faint text-sm py-4 text-center">ไม่พบไอเทม</p>
+            : list.map((item) => {
+                const has = owned.has(item.slug);
+                return (
+                  <button key={item.slug} disabled={has} onClick={() => onAdd(item.slug)}
+                    className={`w-full text-left flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm border ${has ? "border-border opacity-40" : "border-border hover:border-accent/60"}`}>
+                    <span className="flex-1">{item.name}</span>
+                    <span className="text-[10px] text-faint">{item.type}</span>
+                    {item.requiresAttunement && <span className="text-[10px] text-accent border border-accent/40 rounded px-1">attune</span>}
+                    {has && <span className="text-[10px] text-success">มีแล้ว</span>}
+                  </button>
+                );
+              })}
+        </div>
+      </div>
     </div>
   );
 }

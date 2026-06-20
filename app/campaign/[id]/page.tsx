@@ -21,6 +21,7 @@ import { useCampaign } from "../../providers";
 import { formatInviteCode } from "@/lib/inviteCode";
 import { copyText } from "@/lib/clipboard";
 import type { ParticipantView } from "@/lib/events";
+import CombatTracker from "./CombatTracker";
 
 export default function LobbyPage() {
   const { id } = useParams<{ id: string }>();
@@ -89,6 +90,9 @@ export default function LobbyPage() {
           else if (!r.ok) toast(r.message ?? "Could not remove", "danger");
         }}
       />
+
+      {/* Combat tracker — Sprint 4 */}
+      <CombatTracker campaignId={id} />
     </main>
   );
 }

@@ -142,7 +142,7 @@ describe("updateCharacter — override + recompute", () => {
     level: 3, str: 15, dex: 13, con: 16, int: 10, wis: 12, cha: 8, abilityMethod: "standard-array",
     baseAbilitiesJson: "{}", proficiencyBonus: 2, maxHp: 28, currentHp: 28, tempHp: 0, ac: 11, speed: 25, initiative: 1,
     savesJson: '{"str":true,"con":true}', skillsJson: '{"Athletics":true}', spellSlotsJson: "{}",
-    conditionsJson: "[]", overridesJson: "[]", notes: null, createdAt: new Date(), updatedAt: new Date(), spells: [],
+    conditionsJson: "[]", overridesJson: "[]", currencyJson: "{}", notes: null, createdAt: new Date(), updatedAt: new Date(), spells: [],
   });
 
   it("editing a derived field records it as an override and persists the user value", async () => {
@@ -215,7 +215,7 @@ describe("manageSpell — known/prepared (DoD #5)", () => {
       subraceSlug: null, subclassSlug: null, backgroundSlug: null, level: 5, name: "G", isNpc: false,
       str: 8, dex: 14, con: 14, int: 15, wis: 12, cha: 10, abilityMethod: "point-buy", baseAbilitiesJson: "{}",
       proficiencyBonus: 3, maxHp: 22, currentHp: 22, tempHp: 0, ac: 12, speed: 25, initiative: 2,
-      savesJson: "{}", skillsJson: "{}", spellSlotsJson: '{"1":4}', conditionsJson: "[]", overridesJson: "[]",
+      savesJson: "{}", skillsJson: "{}", spellSlotsJson: '{"1":4}', conditionsJson: "[]", overridesJson: "[]", currencyJson: "{}",
       notes: null, createdAt: new Date(), updatedAt: new Date(),
       spells: [{ spellSlug: "fireball", known: true, prepared: true, campaignId: "camp-1", characterId: "char-1", id: "cs1" }],
     });

@@ -21,6 +21,7 @@ model Campaign {
   updatedAt      DateTime        @updatedAt
   sessions       PlayerSession[]
   characters     Character[] // Sprint 2 — campaign-scoped PCs/NPCs (back-relation, no new column)
+  encounters     Encounter[] // Sprint 4 — back-relation (no new column)
 
   @@index([inviteCode])
 }
@@ -82,6 +83,8 @@ model Item {
   propertiesJson     String  @default("{}") // JSON object
   description        String?
   source             String  @default("SRD 5.1")
+
+  characterItems CharacterItem[] // Sprint 3 — back-relation
 
   @@index([type])
   @@index([rarity])
@@ -264,12 +267,15 @@ model Character {
   // State / meta
   conditionsJson String   @default("[]") // RESERVED — set by Combat (S4)
   overridesJson  String   @default("[]") // JSON string[]: fields the user overrode
+  currencyJson   String   @default("{}") // Sprint 3 — JSON: { pp, gp, ep, sp, cp }
   notes          String?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  claimedBy PlayerSession?   @relation("SessionClaim") // reverse of PlayerSession.characterId
-  spells    CharacterSpell[]
+  claimedBy  PlayerSession?   @relation("SessionClaim") // reverse of PlayerSession.characterId
+  spells     CharacterSpell[]
+  items      CharacterItem[] // Sprint 3 — back-relation
+  combatants Combatant[] // Sprint 4 — back-relation (no new column)
 
   @@index([campaignId])
   @@index([ownerSessionId])
@@ -286,5 +292,74 @@ model CharacterSpell {
   prepared    Boolean   @default(false)
 
   @@unique([characterId, spellSlug])
+  @@index([characterId])
+}
+
+// ── Inventory (Sprint 3) ─────────────────────────────────────────────
+// Join table: Character ↔ Item (many-to-many with extra fields).
+// campaignId is denormalized for fast tenant-scoped queries (mirrors CharacterSpell).
+// itemSlug is a real FK → Item.slug (GLOBAL reference, no campaignId).
+// @@unique([characterId, itemSlug]): one row per item per character — stack via quantity.
+// ── Combat (Sprint 4) ────────────────────────────────────────────────
+// Additive migration `combat`: two new tables; no DROP/ALTER on existing tables.
+// Encounter = one combat instance per campaign at a time (app-enforced, not DB unique).
+// Combatant = a participant row — soft-deleted (removed=true) to preserve history.
+// conditionsJson = JSON string: [{name},{name:"Exhaustion",level:2}] (lib/combat/rules.ts).
+// See docs/modules/combat/SA_BLUEPRINT.md §2.
+
+model Encounter {
+  id                String      @id @default(cuid())
+  campaignId        String
+  name              String?
+  status            String      @default("active") // "active" | "ended"
+  round             Int         @default(1)
+  currentTurnIndex  Int         @default(0)
+  allowPlayerHpEdit Boolean     @default(false)
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  campaign   Campaign    @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  combatants Combatant[]
+
+  @@index([campaignId])
+}
+
+model Combatant {
+  id              String    @id @default(cuid())
+  encounterId     String
+  campaignId      String
+  type            String // "character" | "monster"
+  characterId     String?
+  monsterSlug     String?
+  name            String
+  initiative      Int?
+  initiativeOrder Int       @default(0)
+  maxHp           Int
+  currentHp       Int
+  conditionsJson  String    @default("[]")
+  removed         Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  encounter  Encounter  @relation(fields: [encounterId], references: [id], onDelete: Cascade)
+  character  Character? @relation(fields: [characterId], references: [id], onDelete: SetNull)
+
+  @@unique([encounterId, characterId])
+  @@index([encounterId])
+  @@index([campaignId])
+}
+
+model CharacterItem {
+  id          String    @id @default(cuid())
+  campaignId  String // denormalized tenant scope (mirror CharacterSpell pattern)
+  characterId String
+  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  itemSlug    String // FK -> Item.slug (stable across reseed)
+  item        Item      @relation(fields: [itemSlug], references: [slug])
+  quantity    Int       @default(1) // ≥ 1, app-validated
+  equipped    Boolean   @default(false)
+  attuned     Boolean   @default(false) // max 3 attuned per 5e rules (ATTUNEMENT_CAP)
+
+  @@unique([characterId, itemSlug]) // one row per item per character; stack with quantity
   @@index([characterId])
 }

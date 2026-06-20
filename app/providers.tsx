@@ -54,6 +54,8 @@ interface Ctx {
   leave: () => void;
   resume: (campaignId: string) => boolean;
   toast: (message: string, kind?: ToastKind) => void;
+  /** Returns the raw socket.io socket for modules that need to emit/listen to custom events. */
+  getSocket: () => Sock | null;
 }
 
 const CampaignContext = createContext<Ctx | null>(null);
@@ -211,6 +213,8 @@ export function CampaignProvider({ children }: { children: React.ReactNode }) {
     router.push("/");
   }, [applyState, router]);
 
+  const getSocket = useCallback(() => socketRef.current, []);
+
   const resume = useCallback(
     (campaignId: string): boolean => {
       if (stateRef.current?.campaignId === campaignId) return true;
@@ -243,6 +247,7 @@ export function CampaignProvider({ children }: { children: React.ReactNode }) {
         leave,
         resume,
         toast,
+        getSocket,
       }}
     >
       <ConnectionPill connection={connection} hasSocket={!!state} />

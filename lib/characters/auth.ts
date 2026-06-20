@@ -23,3 +23,14 @@ export async function resolveSession(req: Request): Promise<Session | null> {
   if (!ps) return null;
   return { sessionId: ps.id, campaignId: ps.campaignId, role: ps.role === "dm" ? "dm" : "player" };
 }
+
+/** Resolves a raw token string (used by Socket.io handlers — no Request object). */
+export async function resolveSessionByToken(token: string | undefined | null): Promise<Session | null> {
+  if (!token) return null;
+  const ps = await prisma.playerSession.findFirst({
+    where: { sessionToken: token },
+    select: { id: true, campaignId: true, role: true },
+  });
+  if (!ps) return null;
+  return { sessionId: ps.id, campaignId: ps.campaignId, role: ps.role === "dm" ? "dm" : "player" };
+}

@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Combat Tracker — D&D Campaign Manager (Prototype)</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root {
+  --bg: #0B0E14;
+  --surface: #151A23;
+  --surface-raised: #1E2530;
+  --border: #2A323F;
+  --text: #F1F5F9;
+  --text-muted: #94A3B8;
+  --text-faint: #64748B;
+  --accent: #D9A441;
+  --accent-hover: #E8B95C;
+  --arcane: #8B5CF6;
+  --danger: #EF4444;
+  --heal: #22C55E;
+  --warning: #F59E0B;
+  --r-sm: 6px;
+  --r-md: 10px;
+  --r-lg: 14px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  min-height: 100vh;
+}
+
+.mono { font-family: 'JetBrains Mono', monospace; }
+.cinzel { font-family: 'Cinzel', serif; }
+
+/* --- Buttons --- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  border-radius: var(--r-sm);
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  white-space: nowrap;
+  border: none;
+  min-height: 36px;
+  padding: 0 16px;
+}
+.btn-primary {
+  background: var(--accent);
+  color: var(--bg);
+  min-height: 40px;
+  padding: 0 20px;
+}
+.btn-primary:hover { background: var(--accent-hover); }
+.btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  font-size: 13px;
+  min-height: 32px;
+  padding: 0 12px;
+}
+.btn-ghost:hover { color: var(--text); border-color: var(--text-muted); }
+
+.btn-danger {
+  background: transparent;
+  color: var(--danger);
+  border: 1px solid var(--danger);
+  font-size: 13px;
+  min-height: 32px;
+  padding: 0 12px;
+}
+.btn-danger:hover { background: rgba(239,68,68,0.1); }
+
+.btn-icon {
+  background: transparent;
+  color: var(--text-faint);
+  border: none;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+  flex-shrink: 0;
+}
+.btn-icon:hover { color: var(--text); background: rgba(255,255,255,0.06); }
+.btn-icon.danger:hover { color: var(--danger) !important; background: rgba(239,68,68,0.1); }
+.btn-icon:disabled { opacity: 0.3; cursor: default; pointer-events: none; }
+
+/* --- Inputs --- */
+input[type="text"], input[type="number"] {
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  color: var(--text);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  padding: 0 8px;
+  height: 32px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+input[type="text"] { font-family: 'Inter', sans-serif; }
+input[type="number"]:focus { border-color: var(--accent); }
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button { display: none; }
+input::placeholder { color: var(--text-faint); }
+
+/* --- HP Bar --- */
+.hp-track {
+  background: var(--border);
+  height: 6px;
+  border-radius: 3px;
+  overflow: hidden;
+  margin: 5px 0 4px;
+}
+.hp-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 300ms ease, background-color 300ms ease;
+}
+
+/* --- Condition badge --- */
+.cond-badge {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: var(--r-sm);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: default;
+}
+
+/* --- Section divider --- */
+.section-label {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 20px 0 12px;
+}
+.section-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+/* --- Initiative badge --- */
+.init-badge {
+  width: 48px;
+  height: 48px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 20px;
+  font-weight: 500;
+  color: var(--text);
+  flex-shrink: 0;
+}
+.init-badge.active {
+  border: 2px solid var(--accent);
+  box-shadow: 0 0 8px rgba(217,164,65,0.4);
+  color: var(--accent);
+}
+.init-badge.waiting {
+  border-style: dashed;
+  color: var(--text-faint);
+  font-size: 22px;
+}
+
+/* --- Combatant row --- */
+.c-row {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 4px solid transparent;
+  border-radius: var(--r-md);
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+  transition: background 0.2s, border-color 0.2s;
+}
+.c-row.active {
+  background: var(--surface-raised);
+  border-left-color: var(--accent);
+}
+.c-row.ko { opacity: 0.6; }
+
+/* --- Overlays & modals --- */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+.modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 24px;
+  width: 420px;
+  max-width: 90vw;
+  position: relative;
+}
+.modal-hd {
+  font-family: 'Cinzel', serif;
+  font-size: 17px;
+  color: var(--accent);
+  margin-bottom: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* --- Condition picker popover --- */
+.cond-picker {
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 16px;
+  width: 380px;
+  max-width: 94vw;
+  max-height: 88vh;
+  overflow-y: auto;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.7);
+}
+
+/* --- Toast --- */
+#toasts {
+  position: fixed;
+  bottom: 72px;
+  right: 16px;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+.toast {
+  background: var(--surface-raised);
+  border-radius: var(--r-md);
+  padding: 11px 15px;
+  width: 280px;
+  font-size: 13px;
+  border-left: 3px solid var(--text-muted);
+  animation: toastIn 0.2s ease;
+  pointer-events: auto;
+}
+.toast.success { border-left-color: var(--heal); }
+.toast.danger { border-left-color: var(--danger); }
+.toast.warning { border-left-color: var(--warning); }
+.toast.info { border-left-color: var(--arcane); }
+@keyframes toastIn {
+  from { transform: translateX(110%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+
+/* --- Sticky bottom bar --- */
+#sticky-bar {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  height: 56px;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  z-index: 50;
+}
+
+/* --- View toggle bar --- */
+#toggle-bar {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 24px;
+  position: sticky;
+  top: 0;
+  z-index: 40;
+}
+
+/* --- Your-turn banner --- */
+#your-turn-banner {
+  background: var(--accent);
+  color: var(--bg);
+  font-family: 'Cinzel', serif;
+  font-size: 15px;
+  font-weight: 600;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+}
+
+/* --- Skeleton shimmer --- */
+@keyframes shimmer {
+  from { background-position: 200% 0; }
+  to   { background-position: -200% 0; }
+}
+.skel {
+  background: linear-gradient(90deg, var(--surface) 25%, var(--surface-raised) 50%, var(--surface) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 4px;
+}
+
+label { font-size: 12px; color: var(--text-muted); margin-bottom: 5px; display: block; }
+</style>
+</head>
+<body>
+
+<div id="app"></div>
+<div id="toasts"></div>
+
+<script>
+// ================================================================
+// DATA
+// ================================================================
+const ALL_CONDITIONS = [
+  { name:'Blinded',       abbr:'BLI', color:'#94A3B8', effect:'Attacks vs it have advantage'         },
+  { name:'Charmed',       abbr:'CHR', color:'#8B5CF6', effect:'Charmer has social advantage'          },
+  { name:'Deafened',      abbr:'DEA', color:'#94A3B8', effect:'Can\'t hear, fails hearing saves'       },
+  { name:'Exhaustion',    abbr:'EXH', color:'#F59E0B', effect:'Stacking penalties (levels 1–6)',stackable:true },
+  { name:'Frightened',    abbr:'FRI', color:'#F59E0B', effect:'Disadv attacks & ability checks'       },
+  { name:'Grappled',      abbr:'GRP', color:'#94A3B8', effect:'Speed becomes 0'                       },
+  { name:'Incapacitated', abbr:'INC', color:'#EF4444', effect:'No actions or reactions'               },
+  { name:'Invisible',     abbr:'INV', color:'#8B5CF6', effect:'Can\'t be seen without special sense'   },
+  { name:'Paralyzed',     abbr:'PAR', color:'#EF4444', effect:'Incapacitated + auto-fail Str/Dex'     },
+  { name:'Petrified',     abbr:'PET', color:'#94A3B8', effect:'Transformed to stone'                  },
+  { name:'Poisoned',      abbr:'POI', color:'#22C55E', effect:'Disadv on attacks & ability checks'    },
+  { name:'Prone',         abbr:'PRN', color:'#94A3B8', effect:'Must spend ½ speed to stand'           },
+  { name:'Restrained',    abbr:'RST', color:'#F59E0B', effect:'Speed 0, disadv attacks & Dex saves'   },
+  { name:'Stunned',       abbr:'STN', color:'#EF4444', effect:'Incapacitated, auto-fail Str/Dex'      },
+  { name:'Unconscious',   abbr:'UNC', color:'#EF4444', effect:'Incapacitated, drops prone'            },
+];
+
+// ================================================================
+// STATE
+// ================================================================
+var S = {
+  screen: 'lobby',   // 'lobby' | 'loading' | 'combat'
+  role: 'dm',        // 'dm' | 'player'
+  playerCharId: 'aria',
+  encounterName: 'Goblin Ambush',
+  campaignName: 'Iron Throne Campaign',
+  round: 2,
+  turnIdx: 0,
+  condPickerId: null,
+  removeId: null,
+  endConfirm: false,
+  startModal: false,
+  startName: 'Goblin Ambush',
+  yourTurnDismissed: false,
+  combatants: makeCombatants(),
+};
+
+function makeCombatants() {
+  return [
+    { id:'aria',   type:'character', name:'Aria',         initiative:18, iOrder:0, maxHp:45, hp:45, conditions:[] },
+    { id:'goblin', type:'monster',   name:'Goblin Shaman', initiative:14, iOrder:0, maxHp:58, hp:32, conditions:[{name:'Poisoned'}] },
+    { id:'thorin', type:'character', name:'Thorin',        initiative:14, iOrder:1, maxHp:60, hp:60, conditions:[] },
+    { id:'wolf',   type:'monster',   name:'Shadow Wolf',   initiative:null, iOrder:0, maxHp:52, hp:52, conditions:[] },
+  ];
+}
+
+// ================================================================
+// DERIVED
+// ================================================================
+function activeCombatants() {
+  return S.combatants
+    .filter(function(c){ return c.initiative !== null; })
+    .sort(function(a,b){ return b.initiative - a.initiative || a.iOrder - b.iOrder; });
+}
+function waitingCombatants() {
+  return S.combatants.filter(function(c){ return c.initiative === null; });
+}
+function currentTurnIdxClamped() {
+  var a = activeCombatants();
+  return a.length ? S.turnIdx % a.length : 0;
+}
+function activeCombatant() {
+  var a = activeCombatants();
+  return a.length ? a[currentTurnIdxClamped()] : null;
+}
+function getHpColor(hp, max) {
+  var pct = max > 0 ? (hp / max) * 100 : 0;
+  if (pct > 50) return '#22C55E';
+  if (pct > 25) return '#F59E0B';
+  return '#EF4444';
+}
+function getHpPct(hp, max) {
+  return max > 0 ? Math.max(0, Math.min(100, (hp / max) * 100)) : 0;
+}
+function condDef(name) {
+  return ALL_CONDITIONS.find(function(c){ return c.name === name; }) || { name:name, abbr:name.slice(0,3).toUpperCase(), color:'#94A3B8', effect:'' };
+}
+
+// ================================================================
+// ACTIONS
+// ================================================================
+function applyDmg(id) {
+  var el = document.getElementById('dmg-' + id);
+  if (!el) return;
+  var v = parseInt(el.value, 10);
+  el.value = '';
+  if (!v || v <= 0) { toast('Enter a positive damage value', 'danger'); return; }
+  var c = S.combatants.find(function(x){ return x.id === id; });
+  if (!c) return;
+  c.hp = Math.max(0, c.hp - v);
+  if (c.hp === 0 && !c.conditions.find(function(x){ return x.name === 'Unconscious'; })) {
+    c.conditions.push({ name:'Unconscious' });
+    toast(c.name + ' dropped to 0 HP — Unconscious applied', 'warning');
+  } else {
+    toast(c.name + ' took ' + v + ' damage', 'danger');
+  }
+  render();
+}
+function applyHeal(id) {
+  var el = document.getElementById('heal-' + id);
+  if (!el) return;
+  var v = parseInt(el.value, 10);
+  el.value = '';
+  if (!v || v <= 0) { toast('Enter a positive heal value', 'danger'); return; }
+  var c = S.combatants.find(function(x){ return x.id === id; });
+  if (!c) return;
+  c.hp = Math.min(c.maxHp, c.hp + v);
+  if (c.hp > 0) c.conditions = c.conditions.filter(function(x){ return x.name !== 'Unconscious'; });
+  toast(c.name + ' healed for ' + v + ' HP', 'success');
+  render();
+}
+function nextTurn() {
+  var a = activeCombatants();
+  if (!a.length) return;
+  var cur = currentTurnIdxClamped();
+  var next = (cur + 1) % a.length;
+  if (next === 0) { S.round++; toast('Round ' + S.round + ' begins!', 'info'); }
+  S.turnIdx = next;
+  S.yourTurnDismissed = false;
+  render();
+}
+function setActive(id) {
+  var a = activeCombatants();
+  var idx = a.findIndex(function(c){ return c.id === id; });
+  if (idx >= 0) { S.turnIdx = idx; S.yourTurnDismissed = false; render(); }
+}
+function toggleCond(combId, condName) {
+  var c = S.combatants.find(function(x){ return x.id === combId; });
+  if (!c) return;
+  var ex = c.conditions.find(function(x){ return x.name === condName; });
+  if (ex) {
+    c.conditions = c.conditions.filter(function(x){ return x.name !== condName; });
+    toast(condName + ' removed from ' + c.name, 'info');
+  } else {
+    var def = condDef(condName);
+    if (def.stackable) {
+      c.conditions.push({ name:condName, level:1 });
+    } else {
+      c.conditions.push({ name:condName });
+    }
+    toast(condName + ' applied to ' + c.name, 'info');
+  }
+  render();
+}
+function changeExhLevel(combId, delta) {
+  var c = S.combatants.find(function(x){ return x.id === combId; });
+  if (!c) return;
+  var ex = c.conditions.find(function(x){ return x.name === 'Exhaustion'; });
+  if (!ex) return;
+  ex.level = Math.max(1, Math.min(6, (ex.level || 1) + delta));
+  render();
+}
+function swapOrder(id, dir) {
+  var a = activeCombatants();
+  var c = S.combatants.find(function(x){ return x.id === id; });
+  if (!c) return;
+  var peers = a.filter(function(x){ return x.initiative === c.initiative; });
+  var pi = peers.findIndex(function(x){ return x.id === id; });
+  var other = dir === 'up' ? peers[pi - 1] : peers[pi + 1];
+  if (!other) return;
+  var tmp = c.iOrder;
+  c.iOrder = other.iOrder;
+  other.iOrder = tmp;
+  toast(c.name + ' moved ' + dir, 'info');
+  render();
+}
+function removeCombatant(id) {
+  var a = activeCombatants();
+  var ac = activeCombatant();
+  if (ac && ac.id === id) {
+    var newA = a.filter(function(x){ return x.id !== id; });
+    S.turnIdx = newA.length ? currentTurnIdxClamped() % newA.length : 0;
+  }
+  S.combatants = S.combatants.filter(function(x){ return x.id !== id; });
+  S.removeId = null;
+  toast('Combatant removed from encounter', 'warning');
+  render();
+}
+function setInitiative(id) {
+  var el = document.getElementById('init-' + id);
+  if (!el) return;
+  var v = parseInt(el.value, 10);
+  if (!v || v < 1 || v > 30) { toast('Initiative must be 1–30', 'danger'); return; }
+  var c = S.combatants.find(function(x){ return x.id === id; });
+  if (!c) return;
+  c.initiative = v;
+  // Assign iOrder as largest in same-initiative group
+  var a = activeCombatants();
+  var sameInit = a.filter(function(x){ return x.initiative === v && x.id !== id; });
+  c.iOrder = sameInit.length;
+  toast(c.name + '\'s initiative set to ' + v, 'success');
+  render();
+}
+function startCombat(name) {
+  S.encounterName = name.trim() || 'Encounter — Round 1';
+  S.screen = 'loading';
+  render();
+  setTimeout(function() {
+    S.screen = 'combat';
+    render();
+    toast('Combat started: ' + S.encounterName, 'success');
+  }, 900);
+}
+function endCombat() {
+  S.screen = 'lobby';
+  S.endConfirm = false;
+  S.round = 2;
+  S.turnIdx = 0;
+  S.yourTurnDismissed = false;
+  S.combatants = makeCombatants();
+  render();
+}
+function openCondPicker(id, ev) {
+  if (ev) ev.stopPropagation();
+  S.condPickerId = id;
+  render();
+}
+function closeCondPicker() {
+  S.condPickerId = null;
+  render();
+}
+
+// ================================================================
+// TOAST
+// ================================================================
+function toast(msg, type) {
+  type = type || 'info';
+  var el = document.getElementById('toasts');
+  var t = document.createElement('div');
+  t.className = 'toast ' + type;
+  t.textContent = msg;
+  el.appendChild(t);
+  setTimeout(function(){ t.remove(); }, 3800);
+}
+
+// ================================================================
+// SVG ICONS (inline)
+// ================================================================
+var IC = {
+  sword: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5"/><line x1="13" y1="19" x2="19" y2="13"/><line x1="16" y1="16" x2="20" y2="20"/><line x1="19" y1="21" x2="21" y2="19"/></svg>',
+  user:  '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
+  plus:  '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>',
+  x:     '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
+  cu:    '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="18 15 12 9 6 15"/></svg>',
+  cd:    '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>',
+  cr:    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>',
+  check: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>',
+  swords:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5"/><line x1="13" y1="19" x2="19" y2="13"/><line x1="16" y1="16" x2="20" y2="20"/><line x1="19" y1="21" x2="21" y2="19"/><polyline points="9.5 6.5 21 18 21 21 18 21 6.5 9.5"/></svg>',
+};
+
+// ================================================================
+// RENDER PIECES
+// ================================================================
+function renderBadge(cond) {
+  var def = condDef(cond.name);
+  var abbr = cond.name === 'Exhaustion' ? 'EXH ' + (cond.level || 1) : def.abbr;
+  var c = def.color;
+  return '<span class="cond-badge" title="' + def.name + ': ' + def.effect + '" style="color:' + c + ';background:' + c + '22;border:1px solid ' + c + '55">' + abbr + '</span>';
+}
+
+function renderHpBar(hp, max) {
+  var pct = getHpPct(hp, max);
+  var color = getHpColor(hp, max);
+  var isKO = hp === 0;
+  var fillStyle = isKO
+    ? 'width:100%;background:repeating-linear-gradient(45deg,#EF4444 0,#EF4444 4px,transparent 4px,transparent 8px)'
+    : 'width:' + pct + '%;background:' + color;
+  return '<div class="hp-track"><div class="hp-fill" style="' + fillStyle + '"></div></div>'
+    + '<div style="display:flex;align-items:center;gap:6px;">'
+    + '<span class="mono" style="font-size:13px;color:' + color + '">' + hp + ' / ' + max + '</span>'
+    + (isKO ? '<span class="cond-badge" style="color:#EF4444;background:rgba(239,68,68,0.2);border:1px solid rgba(239,68,68,0.4)">KO</span>' : '')
+    + '</div>';
+}
+
+function renderCombatantRow(c, isActive, isDm) {
+  var a = activeCombatants();
+  var peers = a.filter(function(x){ return x.initiative === c.initiative; });
+  var pi = peers.findIndex(function(x){ return x.id === c.id; });
+  var hasTies = peers.length > 1;
+  var canUp = hasTies && pi > 0;
+  var canDn = hasTies && pi < peers.length - 1;
+  var isKO = c.hp === 0;
+  var icon = c.type === 'monster' ? IC.sword : IC.user;
+
+  var reorderBtns = '';
+  if (isDm && hasTies) {
+    reorderBtns = '<div style="display:flex;flex-direction:column;gap:2px;margin-top:3px;">'
+      + '<button class="btn-icon" onclick="swapOrder(\'' + c.id + '\',\'up\')" ' + (canUp ? '' : 'disabled') + ' title="Move up">' + IC.cu + '</button>'
+      + '<button class="btn-icon" onclick="swapOrder(\'' + c.id + '\',\'down\')" ' + (canDn ? '' : 'disabled') + ' title="Move down">' + IC.cd + '</button>'
+      + '</div>';
+  }
+
+  var rightControls = '';
+  if (isDm) {
+    rightControls = '<div style="display:flex;align-items:center;gap:5px;flex-shrink:0;">'
+      + '<div style="display:flex;align-items:center;gap:3px;">'
+      + '<input type="number" id="dmg-' + c.id + '" min="1" max="999" placeholder="dmg" style="width:56px;text-align:center;" title="Damage amount">'
+      + '<button class="btn" onclick="applyDmg(\'' + c.id + '\')" style="height:32px;padding:0 9px;font-size:12px;font-weight:600;background:rgba(239,68,68,0.08);color:#EF4444;border:1px solid #EF4444;border-radius:var(--r-sm);">Apply</button>'
+      + '</div>'
+      + '<div style="display:flex;align-items:center;gap:3px;">'
+      + '<input type="number" id="heal-' + c.id + '" min="1" max="999" placeholder="heal" style="width:56px;text-align:center;" title="Heal amount">'
+      + '<button class="btn" onclick="applyHeal(\'' + c.id + '\')" style="height:32px;padding:0 9px;font-size:12px;font-weight:600;background:rgba(34,197,94,0.08);color:#22C55E;border:1px solid #22C55E;border-radius:var(--r-sm);">Heal</button>'
+      + '</div>'
+      + '<button class="btn-icon" onclick="openCondPicker(\'' + c.id + '\',event)" title="Manage conditions" style="border:1px solid var(--border);">' + IC.plus + '</button>'
+      + (!isActive
+          ? '<button class="btn-ghost" onclick="setActive(\'' + c.id + '\')" style="font-size:11px;min-height:28px;padding:0 8px;">Set Active</button>'
+          : '<span style="font-size:11px;color:var(--text-faint);padding:0 6px;">Active</span>')
+      + '<button class="btn-icon danger" onclick="S.removeId=\'' + c.id + '\';render()" title="Remove from encounter">' + IC.x + '</button>'
+      + '</div>';
+  }
+
+  return '<div class="c-row' + (isActive ? ' active' : '') + (isKO ? ' ko' : '') + '" id="row-' + c.id + '">'
+    + '<div style="display:flex;flex-direction:column;align-items:center;gap:2px;flex-shrink:0;">'
+    + '<div class="init-badge' + (isActive ? ' active' : '') + '">' + (c.initiative !== null ? c.initiative : '—') + '</div>'
+    + reorderBtns
+    + '</div>'
+    + '<div style="flex:1;min-width:0;overflow:hidden;">'
+    + (isActive ? '<div style="font-size:11px;font-weight:600;letter-spacing:0.08em;color:var(--accent);margin-bottom:4px;">▶ ' + c.name.toUpperCase() + '\'S TURN</div>' : '')
+    + '<div style="display:flex;align-items:center;gap:7px;margin-bottom:4px;">'
+    + '<span style="color:var(--text-muted);flex-shrink:0;">' + icon + '</span>'
+    + '<span style="font-size:15px;font-weight:600;">' + c.name + '</span>'
+    + '</div>'
+    + renderHpBar(c.hp, c.maxHp)
+    + (c.conditions.length ? '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:7px;">' + c.conditions.map(renderBadge).join('') + '</div>' : '')
+    + '</div>'
+    + rightControls
+    + '</div>';
+}
+
+function renderWaitingRow(c, isDm) {
+  var isKO = c.hp === 0;
+  var icon = c.type === 'monster' ? IC.sword : IC.user;
+  var rightControls = '';
+  if (isDm) {
+    rightControls = '<div style="display:flex;align-items:center;gap:5px;flex-shrink:0;">'
+      + '<input type="number" id="init-' + c.id + '" min="1" max="30" placeholder="1-30" style="width:68px;text-align:center;" title="Initiative value">'
+      + '<button class="btn-ghost" onclick="setInitiative(\'' + c.id + '\')" style="font-size:12px;min-height:32px;">Set</button>'
+      + '<button class="btn-icon" onclick="openCondPicker(\'' + c.id + '\',event)" title="Manage conditions" style="border:1px solid var(--border);">' + IC.plus + '</button>'
+      + '<button class="btn-icon danger" onclick="S.removeId=\'' + c.id + '\';render()" title="Remove">' + IC.x + '</button>'
+      + '</div>';
+  }
+  return '<div class="c-row' + (isKO ? ' ko' : '') + '" id="row-' + c.id + '">'
+    + '<div class="init-badge waiting">—</div>'
+    + '<div style="flex:1;min-width:0;">'
+    + '<div style="display:flex;align-items:center;gap:7px;margin-bottom:4px;">'
+    + '<span style="color:var(--text-muted);">' + icon + '</span>'
+    + '<span style="font-size:15px;font-weight:600;">' + c.name + '</span>'
+    + '</div>'
+    + renderHpBar(c.hp, c.maxHp)
+    + (c.conditions.length ? '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:7px;">' + c.conditions.map(renderBadge).join('') + '</div>' : '')
+    + '</div>'
+    + rightControls
+    + '</div>';
+}
+
+function renderCondPickerHTML(combId) {
+  var c = S.combatants.find(function(x){ return x.id === combId; });
+  if (!c) return '';
+  var exCond = c.conditions.find(function(x){ return x.name === 'Exhaustion'; });
+
+  var cards = ALL_CONDITIONS.filter(function(d){ return !d.stackable; }).map(function(def) {
+    var active = c.conditions.find(function(x){ return x.name === def.name; });
+    var bc = active ? def.color : 'var(--border)';
+    return '<div onclick="toggleCond(\'' + combId + '\',\'' + def.name + '\')" style="'
+      + 'position:relative;cursor:pointer;user-select:none;'
+      + 'background:var(--surface);border-radius:var(--r-md);padding:9px 8px;'
+      + 'border:1px solid ' + bc + ';min-height:72px;display:flex;flex-direction:column;gap:3px;'
+      + 'transition:border-color 0.15s;">'
+      + '<span style="font-family:\'JetBrains Mono\',monospace;font-size:10px;color:' + def.color + '">' + def.abbr + '</span>'
+      + '<span style="font-size:11px;font-weight:600;">' + def.name + '</span>'
+      + '<span style="font-size:9px;color:var(--text-faint);line-height:1.3">' + def.effect + '</span>'
+      + (active ? '<span style="position:absolute;top:5px;right:5px;color:var(--accent)">' + IC.check + '</span>' : '')
+      + '</div>';
+  });
+
+  var exSection = '<div style="margin-top:10px;background:var(--surface);border-radius:var(--r-md);padding:12px 14px;border:1px solid ' + (exCond ? '#F59E0B' : 'var(--border)') + ';">'
+    + '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">'
+    + '<div style="flex:1;min-width:0;">'
+    + '<span style="font-family:\'JetBrains Mono\',monospace;font-size:10px;color:#F59E0B">EXH</span>'
+    + '<span style="font-size:12px;font-weight:600;margin-left:7px;">Exhaustion</span>'
+    + '<p style="font-size:9px;color:var(--text-faint);margin-top:2px">Stacking penalties per level (1–6)</p>'
+    + '</div>';
+
+  if (exCond) {
+    exSection += '<div style="display:flex;align-items:center;gap:8px;">'
+      + '<button class="btn-icon" onclick="changeExhLevel(\'' + combId + '\',-1);event.stopPropagation()" style="border:1px solid var(--border);font-size:16px;font-weight:600;">−</button>'
+      + '<span class="mono" style="font-size:18px;color:#F59E0B;min-width:44px;text-align:center">' + (exCond.level || 1) + ' / 6</span>'
+      + '<button class="btn-icon" onclick="changeExhLevel(\'' + combId + '\',1);event.stopPropagation()" style="border:1px solid var(--border);font-size:16px;font-weight:600;">+</button>'
+      + '<button class="btn-icon danger" onclick="toggleCond(\'' + combId + '\',\'Exhaustion\');event.stopPropagation()" title="Remove Exhaustion">' + IC.x + '</button>'
+      + '</div>';
+  } else {
+    exSection += '<button class="btn-ghost" onclick="toggleCond(\'' + combId + '\',\'Exhaustion\');event.stopPropagation()">Add</button>';
+  }
+  exSection += '</div></div>';
+
+  return '<div class="cond-picker" onclick="event.stopPropagation()">'
+    + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">'
+    + '<span class="cinzel" style="font-size:15px;color:var(--accent);">Conditions — ' + c.name + '</span>'
+    + '<button class="btn-icon" onclick="closeCondPicker()" title="Close">' + IC.x + '</button>'
+    + '</div>'
+    + '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;">' + cards.join('') + '</div>'
+    + exSection
+    + '</div>';
+}
+
+function renderStartModal() {
+  return '<div class="overlay">'
+    + '<div class="modal">'
+    + '<div class="modal-hd">' + IC.swords + ' Start Combat'
+    + '<button class="btn-icon" onclick="S.startModal=false;render()">' + IC.x + '</button></div>'
+    + '<label for="enc-name-input">Encounter Name <span style="color:var(--text-faint)">(optional)</span></label>'
+    + '<input type="text" id="enc-name-input" value="' + S.startName + '" oninput="S.startName=this.value" placeholder="Encounter — Round 1" style="width:100%;height:40px;font-family:\'Inter\',sans-serif;font-size:14px;margin-bottom:14px;">'
+    + '<p style="font-size:13px;color:var(--text-muted);margin-bottom:20px;">All players will see combat begin and the live initiative order in real time.</p>'
+    + '<div style="display:flex;gap:8px;justify-content:flex-end;">'
+    + '<button class="btn btn-ghost" onclick="S.startModal=false;render()">Cancel</button>'
+    + '<button class="btn btn-primary" onclick="S.startModal=false;startCombat(S.startName)">' + IC.swords + ' Start Combat</button>'
+    + '</div></div></div>';
+}
+
+function renderRemoveConfirm(id) {
+  var c = S.combatants.find(function(x){ return x.id === id; });
+  var name = c ? c.name : '?';
+  return '<div class="overlay">'
+    + '<div class="modal" style="max-width:320px;">'
+    + '<p style="font-size:15px;font-weight:600;margin-bottom:8px;">Remove ' + name + '?</p>'
+    + '<p style="font-size:13px;color:var(--text-muted);margin-bottom:20px;">They will be removed from this encounter. If it\'s their turn, the next combatant goes.</p>'
+    + '<div style="display:flex;gap:8px;justify-content:flex-end;">'
+    + '<button class="btn btn-ghost" onclick="S.removeId=null;render()">Cancel</button>'
+    + '<button class="btn btn-danger" onclick="removeCombatant(\'' + id + '\')">Remove</button>'
+    + '</div></div></div>';
+}
+
+function renderEndConfirm() {
+  return '<div class="overlay">'
+    + '<div class="modal" style="max-width:320px;">'
+    + '<p style="font-size:15px;font-weight:600;margin-bottom:8px;">End Combat?</p>'
+    + '<p style="font-size:13px;color:var(--text-muted);margin-bottom:20px;">The encounter will end. History is preserved for Sprint 5 recap.</p>'
+    + '<div style="display:flex;gap:8px;justify-content:flex-end;">'
+    + '<button class="btn btn-ghost" onclick="S.endConfirm=false;render()">Cancel</button>'
+    + '<button class="btn btn-danger" onclick="endCombat()">End Combat</button>'
+    + '</div></div></div>';
+}
+
+// ================================================================
+// MAIN RENDER
+// ================================================================
+function render() {
+  var app = document.getElementById('app');
+  var isDm = S.role === 'dm';
+
+  // --- LOBBY ---
+  if (S.screen === 'lobby') {
+    app.innerHTML = '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:48px 24px;">'
+      + '<div style="max-width:480px;width:100%;text-align:center;">'
+      + '<div style="font-size:40px;margin-bottom:12px;">⚔</div>'
+      + '<h1 class="cinzel" style="font-size:26px;color:var(--text);margin-bottom:6px;">Iron Throne Campaign</h1>'
+      + '<p style="color:var(--text-muted);margin-bottom:40px;font-size:14px;">D&D Campaign Manager · Combat Module</p>'
+      + '<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:28px;margin-bottom:16px;">'
+      + '<div style="font-size:11px;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-faint);margin-bottom:14px;">⚔ Combat</div>'
+      + (isDm
+          ? '<p style="color:var(--text-muted);font-size:14px;margin-bottom:18px;">No active encounter</p>'
+            + '<button class="btn btn-primary" onclick="S.startModal=true;S.startName=\'Goblin Ambush\';render()" style="margin:0 auto;">' + IC.swords + ' Start Combat</button>'
+          : '<p style="color:var(--text-faint);font-size:14px;">Waiting for DM to start combat…</p>')
+      + '</div>'
+      + '<button class="btn btn-ghost" onclick="S.role=(S.role===\'dm\'?\'player\':\'dm\');render()" style="margin:0 auto;">'
+      + (isDm ? '🧙 DM View — Switch to Player View' : '🎲 Player View — Switch to DM View')
+      + '</button>'
+      + '<p style="margin-top:32px;font-size:11px;color:var(--text-faint);">⚠ Prototype · mock data · no backend</p>'
+      + '</div></div>'
+      + (S.startModal ? renderStartModal() : '');
+    return;
+  }
+
+  // --- LOADING ---
+  if (S.screen === 'loading') {
+    app.innerHTML = '<div style="padding:24px;max-width:960px;margin:0 auto;">'
+      + [1,2,3].map(function() {
+          return '<div class="c-row" style="gap:14px;">'
+            + '<div class="skel" style="width:48px;height:48px;flex-shrink:0;"></div>'
+            + '<div style="flex:1;">'
+            + '<div class="skel" style="height:13px;width:35%;margin-bottom:9px;"></div>'
+            + '<div class="skel" style="height:6px;margin-bottom:7px;"></div>'
+            + '<div class="skel" style="height:11px;width:20%;"></div>'
+            + '</div></div>';
+        }).join('')
+      + '</div>';
+    return;
+  }
+
+  // --- COMBAT ---
+  var actives = activeCombatants();
+  var waiting = waitingCombatants();
+  var tidx = currentTurnIdxClamped();
+  var activeComb = activeCombatant();
+  var showYourTurn = !isDm && activeComb && activeComb.id === S.playerCharId && !S.yourTurnDismissed;
+
+  var html = '';
+
+  // Toggle bar
+  html += '<div id="toggle-bar">'
+    + '<div style="display:flex;align-items:center;gap:10px;">'
+    + '<span class="cinzel" style="color:var(--accent);font-size:13px;">⚔ COMBAT</span>'
+    + '<span style="color:var(--border)">|</span>'
+    + '<span style="font-size:12px;color:var(--text-muted);">' + (isDm ? '🧙 DM View' : '🎲 Player View') + '</span>'
+    + '</div>'
+    + '<button class="btn btn-ghost" onclick="S.role=(S.role===\'dm\'?\'player\':\'dm\');S.yourTurnDismissed=false;render()">Switch to ' + (isDm ? 'Player' : 'DM') + ' View</button>'
+    + '</div>';
+
+  // Your-turn banner
+  if (showYourTurn) {
+    var pname = (S.combatants.find(function(x){ return x.id === S.playerCharId; }) || {}).name || 'ARIA';
+    html += '<div id="your-turn-banner">'
+      + '<span>' + IC.swords + '&ensp;IT\'S YOUR TURN, ' + pname.toUpperCase() + '!</span>'
+      + '<button onclick="S.yourTurnDismissed=true;render()" style="background:rgba(0,0,0,0.2);border:none;color:var(--bg);cursor:pointer;border-radius:var(--r-sm);padding:4px 14px;font-size:13px;font-weight:600;">Dismiss</button>'
+      + '</div>';
+  }
+
+  // Encounter header
+  html += '<div style="background:var(--surface);border-bottom:1px solid var(--border);padding:14px 24px;">'
+    + '<div style="max-width:960px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:16px;">'
+    + '<div>'
+    + '<h1 class="cinzel" style="font-size:20px;color:var(--accent);margin-bottom:3px;">' + S.encounterName + '</h1>'
+    + '<p style="font-size:12px;color:var(--text-muted);">' + S.campaignName + '</p>'
+    + '</div>'
+    + '<div style="display:flex;align-items:center;gap:16px;">'
+    + '<span class="mono" style="font-size:17px;">Round <span style="color:var(--accent)">' + S.round + '</span></span>'
+    + (isDm ? '<button class="btn btn-danger" onclick="S.endConfirm=true;render()">End Combat</button>' : '')
+    + '</div></div></div>';
+
+  // Main list
+  html += '<div style="padding:20px 24px 80px;max-width:960px;margin:0 auto;">';
+
+  if (actives.length === 0 && waiting.length === 0) {
+    html += '<div style="text-align:center;padding:64px 24px;color:var(--text-faint);">'
+      + '<p style="font-size:16px;margin-bottom:8px;">No combatants yet</p>'
+      + '<p style="font-size:13px;">' + (isDm ? 'Add characters and monsters to begin' : 'Waiting for DM to add combatants') + '</p>'
+      + '</div>';
+  }
+
+  actives.forEach(function(c, i) {
+    html += renderCombatantRow(c, i === tidx, isDm);
+  });
+
+  if (waiting.length) {
+    html += '<div class="section-label">Waiting for Initiative</div>';
+    waiting.forEach(function(c) {
+      html += renderWaitingRow(c, isDm);
+    });
+  }
+
+  html += '</div>';
+
+  // Sticky bar
+  html += '<div id="sticky-bar">'
+    + '<div style="font-size:14px;color:var(--text-muted);">Round <span class="mono" style="color:var(--text)">' + S.round + '</span>'
+    + (activeComb ? ' &middot; <span style="color:var(--text);">' + activeComb.name + '\'s turn</span>' : '')
+    + '</div>'
+    + (isDm
+        ? '<button class="btn btn-primary" onclick="nextTurn()" ' + (actives.length === 0 ? 'disabled' : '') + '>' + IC.cr + ' Next Turn</button>'
+        : '')
+    + '</div>';
+
+  // Condition picker overlay
+  if (S.condPickerId) {
+    html += '<div class="overlay" onclick="closeCondPicker()">'
+      + renderCondPickerHTML(S.condPickerId)
+      + '</div>';
+  }
+
+  // Remove confirm
+  if (S.removeId) {
+    html += renderRemoveConfirm(S.removeId);
+  }
+
+  // End combat confirm
+  if (S.endConfirm) {
+    html += renderEndConfirm();
+  }
+
+  app.innerHTML = html;
+}
+
+// ================================================================
+// BOOT
+// ================================================================
+render();
+</script>
+
+<div style="text-align:center;padding:14px 24px;font-size:11px;color:#334155;border-top:1px solid var(--border);font-family:'Inter',sans-serif;">
+  ⚠ <strong>Prototype</strong> — mock data, no backend. Real implementation via <code>/dev</code> · Sprint 4 · D&amp;D Campaign Manager
+</div>
+</body>
+</html>

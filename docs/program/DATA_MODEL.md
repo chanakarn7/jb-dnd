@@ -213,10 +213,40 @@ Owner: Inventory. **Finalized (Sprint 3, migration `inventory`).** Join Characte
 Owner: Characters. **Finalized (Sprint 2, migration `characters`).** Join Character ↔ Spell. Columns: `id`, `campaignId` (denormalized tenant scope), `characterId` (FK→Character cascade, indexed), **`spellSlug` (FK→`Spell.slug`** — slug, not id, stable across reseed), `known` (Boolean), `prepared` (Boolean). **@@unique([characterId, spellSlug])**.
 
 ### Encounter
-Owner: Combat. Stub: `id`, `campaignId`, `name`, `locationId?`, `status` (`planned`|`active`|`done`), `round`, `activeCombatantId?`, `createdAt`.
+Owner: Combat. **Finalized (Sprint 4, migration `combat`).** One active encounter per campaign at a time (app-enforced); ended encounters kept for history (Sprint 5 Story).
+| Column | Type | Constraints | Notes |
+|--------|------|-------------|-------|
+| `id` | String | PK, cuid | |
+| `campaignId` | String | FK→Campaign cascade, **@@index** | multi-tenancy spine |
+| `name` | String? | max 80, nullable | optional label e.g. "Goblin Ambush" |
+| `status` | String | default `"active"` | `"active"` \| `"ended"` |
+| `round` | Int | default 1, ≥ 1 | increments on full initiative cycle |
+| `currentTurnIndex` | Int | default 0, ≥ 0 | index into sorted non-removed combatants |
+| `allowPlayerHpEdit` | Boolean | default false | DM flag — when true, players may apply damage/healing to their own combatant |
+| `createdAt` | DateTime | default now | |
+| `updatedAt` | DateTime | @updatedAt | |
+1—N `Combatant` (cascade delete on Encounter delete). See [SA_BLUEPRINT](../modules/combat/SA_BLUEPRINT.md).
 
 ### Combatant
-Owner: Combat. Stub: `id`, `campaignId`, `encounterId`, `characterId?`, `monsterId?`, `initiative`, `currentHp`, `maxHp`, `conditions` (JSON), `hasActed`, `order`.
+Owner: Combat. **Finalized (Sprint 4, migration `combat`).** One row per participant in an encounter — either a `Character` (FK) or a `Monster` (soft-ref by slug). Soft-deleted (`removed=true`) rather than DB-deleted to preserve history.
+| Column | Type | Constraints | Notes |
+|--------|------|-------------|-------|
+| `id` | String | PK, cuid | |
+| `encounterId` | String | FK→Encounter cascade, **@@index** | |
+| `campaignId` | String | **@@index** | denormalized for tenant-scoped queries |
+| `type` | String | `"character"` \| `"monster"` | determines which reference is used |
+| `characterId` | String? | FK→Character nullable, `onDelete: SetNull`, **@@unique([encounterId,characterId])** | set iff `type="character"`; unique prevents duplicate character in same encounter |
+| `monsterSlug` | String? | soft-ref→Monster.slug, nullable, no FK | set iff `type="monster"`; soft-ref allows multiple of same monster slug with different names |
+| `name` | String | max 80 | display name (may differ from source; e.g. "Goblin #2") |
+| `initiative` | Int? | nullable, app-validated 1–30 | null = not yet set; shown in "Waiting" section below sorted list |
+| `initiativeOrder` | Int | default 0 | tie-breaker within same initiative value; lower = higher in list |
+| `maxHp` | Int | ≥ 1 | snapshotted from Character/Monster at add time |
+| `currentHp` | Int | 0–maxHp server-clamped | |
+| `conditionsJson` | String | default `"[]"` | JSON `ConditionEntry[]`: `[{name},{name:"Exhaustion",level:2}]`; parsed by `lib/combat/rules.ts` |
+| `removed` | Boolean | default false | soft-delete; excluded from active turn order |
+| `createdAt` | DateTime | default now | |
+| `updatedAt` | DateTime | @updatedAt | |
+See [SA_BLUEPRINT](../modules/combat/SA_BLUEPRINT.md).
 
 ### Session
 Owner: Story. Stub: `id`, `campaignId`, `number`, `date`, `title`, `recap`, `xpAwarded`, links to encounters/quests/loot (JSON or join tables, decided in Sprint 5).
