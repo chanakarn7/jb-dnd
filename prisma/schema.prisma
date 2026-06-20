@@ -20,6 +20,7 @@ model Campaign {
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
   sessions       PlayerSession[]
+  characters     Character[] // Sprint 2 — campaign-scoped PCs/NPCs (back-relation, no new column)
 
   @@index([inviteCode])
 }
@@ -31,7 +32,8 @@ model PlayerSession {
   displayName  String
   role         String // "dm" | "player"
   sessionToken String // secret — reconnect identity, never broadcast
-  characterId  String? // RESERVED for Sprint 2 (Characters); nullable, no FK relation yet
+  characterId  String?    @unique // Sprint 2 — now a real 1:1 FK→Character (the claim); SetNull on char delete
+  character    Character? @relation("SessionClaim", fields: [characterId], references: [id], onDelete: SetNull)
   isConnected  Boolean  @default(true)
   connectedAt  DateTime @default(now())
   lastSeenAt   DateTime @default(now())
@@ -62,6 +64,8 @@ model Spell {
   higherLevels  String?
   classesJson   String // JSON string[]
   source        String  @default("SRD 5.1")
+
+  characterSpells CharacterSpell[] // Sprint 2 — back-relation (CharacterSpell.spellSlug → Spell.slug)
 
   @@index([level])
   @@index([school])
@@ -114,4 +118,173 @@ model Monster {
   @@index([type])
   @@index([size])
   @@index([name])
+}
+
+// ── Characters reference (Sprint 2) ─────────────────────────────────
+// GLOBAL 5e build data (SRD 5.1 CC-BY-4.0 + open OGL/CC community packs).
+// NO campaignId — shared across all campaigns. Seeded idempotently by slug.
+// Per-row source + license. JSON strings for nested/multi-value fields.
+// See docs/modules/characters/SA_BLUEPRINT.md §2.1.
+
+model Class {
+  id               String  @id @default(cuid())
+  slug             String  @unique // "fighter", "wizard"
+  name             String
+  hitDie           Int // 6 | 8 | 10 | 12
+  primaryAbility   String // "str" | "dex" | ... (hint)
+  savesJson        String // JSON string[]: ["str","con"] — proficient saving throws
+  armorProfJson    String  @default("[]")
+  weaponProfJson   String  @default("[]")
+  toolProfJson     String  @default("[]")
+  skillChoicesJson String  @default("{}") // JSON: { from: string[], count: number }
+  spellcastingJson String? // JSON: { ability, type } | null = non-caster
+  subclassLevel    Int     @default(1) // level a subclass is chosen
+  source           String  @default("SRD 5.1")
+  license          String  @default("CC-BY-4.0")
+
+  @@index([name])
+}
+
+model Subclass {
+  id                  String  @id @default(cuid())
+  slug                String  @unique
+  classSlug           String // soft ref -> Class.slug
+  name                String
+  flavor              String? // 1-line tagline
+  description         String? // full player-facing explanation (what it plays like)
+  featuresByLevelJson String  @default("{}") // JSON: { "3": ["feature-slug"] }
+  source              String  @default("SRD 5.1")
+  license             String  @default("CC-BY-4.0") // community: "OGL-1.0a" | "CC-BY-4.0"
+
+  @@index([classSlug])
+  @@index([name])
+}
+
+model ClassLevel {
+  id                String @id @default(cuid())
+  classSlug         String // soft ref -> Class.slug
+  level             Int // 1..20
+  proficiencyBonus  Int // +2..+6
+  featuresJson      String @default("[]") // JSON string[] of Feature slugs gained
+  spellSlotsJson    String @default("{}") // JSON: { "1": 2, ... } (caster only)
+  classCountersJson String @default("{}") // JSON: { rages, kiPoints, ... }
+  source            String @default("SRD 5.1")
+
+  @@unique([classSlug, level])
+  @@index([classSlug])
+}
+
+model Feature {
+  id           String  @id @default(cuid())
+  slug         String  @unique
+  name         String
+  classSlug    String? // soft ref -> Class.slug
+  subclassSlug String? // soft ref -> Subclass.slug
+  level        Int     @default(1)
+  description  String
+  source       String  @default("SRD 5.1")
+  license      String  @default("CC-BY-4.0")
+
+  @@index([classSlug])
+  @@index([subclassSlug])
+}
+
+model Race {
+  id                 String  @id @default(cuid())
+  slug               String  @unique
+  name               String
+  parentRaceSlug     String? // soft ref -> Race.slug for subraces
+  abilityBonusesJson String  @default("{}") // JSON: { str:0, dex:2, ... }
+  size               String  @default("Medium")
+  speed              Int     @default(30) // walking speed ft.
+  traitsJson         String  @default("[]") // JSON: [{ name, desc }]
+  proficienciesJson  String  @default("{}") // JSON: { skills:[], weapons:[], ... }
+  languagesJson      String  @default("[]") // JSON string[]
+  source             String  @default("SRD 5.1")
+  license            String  @default("CC-BY-4.0")
+
+  @@index([parentRaceSlug])
+  @@index([name])
+}
+
+model Background {
+  id                     String  @id @default(cuid())
+  slug                   String  @unique
+  name                   String
+  skillProficienciesJson String  @default("[]") // JSON string[]
+  toolProficienciesJson  String  @default("[]") // JSON string[]
+  languagesJson          String  @default("[]") // JSON string[] (or count)
+  featureJson            String  @default("{}") // JSON: { name, desc }
+  startingEquipment      String?
+  source                 String  @default("SRD 5.1")
+  license                String  @default("CC-BY-4.0")
+
+  @@index([name])
+}
+
+// ── Characters (Sprint 2) — campaign-scoped, mutable, authz server-side ──
+model Character {
+  id             String   @id @default(cuid())
+  campaignId     String
+  campaign       Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  ownerSessionId String? // denormalized authz field; mirrors the claim. null = NPC/DM-owned.
+  isNpc          Boolean  @default(false)
+  name           String
+
+  // Build choices (soft refs to GLOBAL reference by slug)
+  raceSlug       String
+  subraceSlug    String?
+  classSlug      String
+  subclassSlug   String?
+  backgroundSlug String?
+  level          Int     @default(1) // 1..20
+
+  // Ability scores — EFFECTIVE values (assigned + race bonus), editable truth
+  str               Int
+  dex               Int
+  con               Int
+  int               Int
+  wis               Int
+  cha               Int
+  abilityMethod     String @default("standard-array") // "standard-array" | "point-buy"
+  baseAbilitiesJson String @default("{}") // assigned scores pre-race (for recompute)
+
+  // Derived-but-overridable scalars
+  proficiencyBonus Int    @default(2)
+  maxHp            Int    @default(1)
+  currentHp        Int    @default(1)
+  tempHp           Int    @default(0)
+  ac               Int    @default(10)
+  speed            Int    @default(30)
+  initiative       Int    @default(0)
+  savesJson        String @default("{}") // JSON: { str:true, con:true }
+  skillsJson       String @default("{}") // JSON: { athletics:true, ... }
+  spellSlotsJson   String @default("{}") // JSON: { "1": 2, ... } (caster only)
+
+  // State / meta
+  conditionsJson String   @default("[]") // RESERVED — set by Combat (S4)
+  overridesJson  String   @default("[]") // JSON string[]: fields the user overrode
+  notes          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  claimedBy PlayerSession?   @relation("SessionClaim") // reverse of PlayerSession.characterId
+  spells    CharacterSpell[]
+
+  @@index([campaignId])
+  @@index([ownerSessionId])
+}
+
+model CharacterSpell {
+  id          String    @id @default(cuid())
+  campaignId  String // denormalized for tenant-scoped queries
+  characterId String
+  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  spellSlug   String // FK -> Spell.slug (stable across reseed)
+  spell       Spell     @relation(fields: [spellSlug], references: [slug])
+  known       Boolean   @default(true)
+  prepared    Boolean   @default(false)
+
+  @@unique([characterId, spellSlug])
+  @@index([characterId])
 }

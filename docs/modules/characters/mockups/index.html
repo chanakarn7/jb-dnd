@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Characters — Prototype (Sprint 2)</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+<script src="https://unpkg.com/lucide@latest"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          bg: "#0B0E14", surface: "#151A23", raised: "#1E2530", border: "#2A323F",
+          text: "#F1F5F9", muted: "#94A3B8", faint: "#64748B",
+          accent: "#D9A441", accenth: "#E8B95C", arcane: "#8B5CF6",
+          hp: "#EF4444", heal: "#22C55E", warning: "#F59E0B",
+        },
+        fontFamily: {
+          display: ["Cinzel", "serif"], sans: ["Inter", "sans-serif"], mono: ["JetBrains Mono", "monospace"],
+        },
+      },
+    },
+  };
+</script>
+<style>
+  body { background: #0B0E14; color: #F1F5F9; }
+  .num { font-family: "JetBrains Mono", monospace; font-variant-numeric: tabular-nums; }
+  .display { font-family: "Cinzel", serif; }
+  .focusable:focus-visible { outline: 3px solid #D9A441; outline-offset: 2px; }
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-thumb { background: #2A323F; border-radius: 6px; }
+  .skel { background: linear-gradient(90deg,#1E2530 25%,#283040 50%,#1E2530 75%); background-size:200% 100%; animation: sh 1.3s infinite; }
+  @keyframes sh { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+  [hidden]{display:none!important;}
+</style>
+</head>
+<body class="font-sans">
+<!-- Top bar -->
+<header class="sticky top-0 z-20 border-b border-border bg-surface/95 backdrop-blur">
+  <div class="mx-auto max-w-7xl px-4 py-3 flex items-center gap-4">
+    <span class="display text-accent text-xl font-bold">⚔ D&D Manager</span>
+    <span class="text-faint text-sm">/ Characters — prototype</span>
+    <nav class="ml-auto flex flex-wrap gap-1 text-sm">
+      <button class="focusable px-3 py-1.5 rounded-md hover:bg-raised" onclick="go('list')">รายการ</button>
+      <button class="focusable px-3 py-1.5 rounded-md hover:bg-raised" onclick="go('wizard')">สร้าง</button>
+      <button class="focusable px-3 py-1.5 rounded-md hover:bg-raised" onclick="go('sheet')">ชีต</button>
+      <button class="focusable px-3 py-1.5 rounded-md hover:bg-raised text-muted" onclick="go('loading')">loading</button>
+      <button class="focusable px-3 py-1.5 rounded-md hover:bg-raised text-muted" onclick="go('notfound')">404</button>
+    </nav>
+  </div>
+</header>
+
+<main class="mx-auto max-w-7xl px-4 py-6">
+
+  <!-- ════════════ LIST ════════════ -->
+  <section id="screen-list">
+    <div class="flex items-center gap-3 mb-5">
+      <h1 class="display text-2xl font-bold">⚔ ตัวละคร</h1>
+      <label class="ml-auto text-xs text-muted flex items-center gap-2">
+        <input type="checkbox" id="emptyToggle" onchange="renderList()" class="accent-accent" /> empty state
+      </label>
+      <button class="focusable bg-accent text-bg font-semibold px-4 py-2 rounded-md hover:bg-accenth" onclick="go('wizard')">
+        <span class="inline-flex items-center gap-1.5"><i data-lucide="user-plus" class="w-4 h-4"></i> สร้างตัวละคร</span>
+      </button>
+    </div>
+    <div id="listBody"></div>
+    <footer class="mt-8 pt-4 border-t border-border text-xs text-faint">
+      This work includes material from the SRD 5.1 by Wizards of the Coast LLC under CC-BY-4.0 ·
+      community subclasses under OGL 1.0a / CC (per-row attribution)
+    </footer>
+  </section>
+
+  <!-- ════════════ WIZARD ════════════ -->
+  <section id="screen-wizard" hidden>
+    <div class="flex items-center gap-3 mb-4">
+      <h1 class="display text-2xl font-bold">สร้างตัวละคร</h1>
+      <button class="ml-auto text-sm text-muted hover:text-text focusable rounded px-2 py-1" onclick="go('list')">✕ ยกเลิก</button>
+    </div>
+    <!-- stepper -->
+    <ol id="stepper" class="flex flex-wrap gap-2 mb-6 text-sm"></ol>
+    <div class="grid lg:grid-cols-5 gap-6">
+      <div class="lg:col-span-3 bg-surface border border-border rounded-2xl p-5 min-h-[320px]">
+        <div id="stepBody"></div>
+      </div>
+      <!-- live preview -->
+      <aside class="lg:col-span-2">
+        <div class="sticky top-20 bg-raised border border-border rounded-2xl p-5">
+          <div class="text-xs text-faint uppercase tracking-wider mb-2">พรีวิว (สด)</div>
+          <div id="previewName" class="display text-xl font-bold">ตัวละคร (ร่าง)</div>
+          <div id="previewMeta" class="text-muted text-sm mb-4">—</div>
+          <div class="grid grid-cols-4 gap-2 mb-4">
+            <div class="bg-surface rounded-lg p-2 text-center"><div class="text-[10px] text-faint">HP</div><div class="num text-lg" id="pvHp">—</div></div>
+            <div class="bg-surface rounded-lg p-2 text-center"><div class="text-[10px] text-faint">AC</div><div class="num text-lg" id="pvAc">—</div></div>
+            <div class="bg-surface rounded-lg p-2 text-center"><div class="text-[10px] text-faint">SPD</div><div class="num text-lg" id="pvSpd">—</div></div>
+            <div class="bg-surface rounded-lg p-2 text-center"><div class="text-[10px] text-faint">PB</div><div class="num text-lg" id="pvPb">—</div></div>
+          </div>
+          <div class="grid grid-cols-6 gap-1" id="pvAbilities"></div>
+        </div>
+      </aside>
+    </div>
+    <div class="flex items-center gap-3 mt-6">
+      <button id="backBtn" class="focusable px-4 py-2 rounded-md border border-border hover:bg-raised" onclick="stepPrev()">← ย้อนกลับ</button>
+      <span id="stepHint" class="text-xs text-muted"></span>
+      <button id="nextBtn" class="focusable ml-auto bg-accent text-bg font-semibold px-5 py-2 rounded-md hover:bg-accenth disabled:opacity-40" onclick="stepNext()">ถัดไป →</button>
+    </div>
+  </section>
+
+  <!-- ════════════ SHEET ════════════ -->
+  <section id="screen-sheet" hidden>
+    <div class="flex items-baseline gap-3 mb-1">
+      <h1 class="display text-3xl font-bold">Thorin</h1>
+      <label class="ml-auto text-xs text-muted flex items-center gap-2">
+        <input type="checkbox" id="casterToggle" onchange="renderSheet()" class="accent-arcane" /> โหมด caster (โชว์ Spells)
+      </label>
+      <button class="focusable px-3 py-1.5 rounded-md border border-border hover:bg-raised text-sm">⚙ แก้</button>
+    </div>
+    <div id="sheetMeta" class="text-muted mb-5"></div>
+
+    <!-- COMBAT HUD -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+      <div class="relative bg-raised border border-border rounded-2xl p-4 text-center">
+        <span class="absolute top-2 right-2 text-[10px] text-faint border border-border rounded px-1">auto ✎</span>
+        <div class="text-xs text-muted">HP</div><div class="num text-4xl text-heal">28<span class="text-muted text-2xl">/28</span></div>
+        <div class="h-1 mt-2 rounded bg-surface overflow-hidden"><div class="h-full bg-heal" style="width:100%"></div></div>
+      </div>
+      <div class="relative bg-raised border border-border rounded-2xl p-4 text-center">
+        <span class="absolute top-2 right-2 text-[10px] text-faint border border-border rounded px-1">auto</span>
+        <div class="text-xs text-muted">AC</div><div class="num text-4xl">16</div>
+      </div>
+      <div class="relative bg-raised border border-border rounded-2xl p-4 text-center">
+        <span class="absolute top-2 right-2 text-[10px] text-accent border border-accent/50 rounded px-1">แก้เอง</span>
+        <div class="text-xs text-muted">SPEED</div><div class="num text-4xl" style="text-decoration:underline dashed #D9A441">25<span class="text-xl text-muted">ft</span></div>
+      </div>
+      <div class="relative bg-raised border border-border rounded-2xl p-4 text-center">
+        <span class="absolute top-2 right-2 text-[10px] text-faint border border-border rounded px-1">auto</span>
+        <div class="text-xs text-muted">INIT</div><div class="num text-4xl">+1</div>
+      </div>
+    </div>
+
+    <div class="grid lg:grid-cols-2 gap-6">
+      <!-- CORE -->
+      <div class="bg-surface border border-border rounded-2xl p-5">
+        <h2 class="display text-lg text-accent mb-3">Core</h2>
+        <div class="grid grid-cols-6 gap-2 mb-5" id="sheetAbilities"></div>
+        <div class="mb-4">
+          <div class="text-xs text-faint uppercase mb-1">Saving Throws</div>
+          <div id="sheetSaves" class="grid grid-cols-2 gap-x-6 gap-y-1 text-sm"></div>
+        </div>
+        <div>
+          <div class="text-xs text-faint uppercase mb-1">Skills</div>
+          <div id="sheetSkills" class="grid sm:grid-cols-2 gap-x-6 gap-y-1 text-sm"></div>
+        </div>
+        <div class="mt-4 flex items-center gap-2 text-xs text-faint">
+          <span class="inline-flex items-center gap-1"><span class="text-text">●</span> proficient</span>
+          <span class="inline-flex items-center gap-1"><span>○</span> not</span>
+          <span class="text-faint">— dot + ตัวหนา (ไม่พึ่งสีอย่างเดียว)</span>
+        </div>
+      </div>
+      <!-- FEATURES + SPELLS -->
+      <div class="space-y-6">
+        <div class="bg-surface border border-border rounded-2xl p-5">
+          <h2 class="display text-lg text-accent mb-3">Features (ราย level)</h2>
+          <div id="sheetFeatures" class="space-y-1"></div>
+        </div>
+        <div id="spellsSection" class="bg-surface border border-border rounded-2xl p-5" hidden>
+          <h2 class="display text-lg text-arcane mb-3">Spells</h2>
+          <div id="sheetSpells" class="space-y-1 text-sm"></div>
+        </div>
+      </div>
+    </div>
+    <footer class="mt-8 pt-4 border-t border-border text-xs text-faint">SRD 5.1 (CC-BY-4.0) · community subclasses: OGL/CC</footer>
+  </section>
+
+  <!-- ════════════ LOADING ════════════ -->
+  <section id="screen-loading" hidden>
+    <div class="h-8 w-48 skel rounded mb-5"></div>
+    <div class="space-y-3">
+      <div class="h-24 skel rounded-2xl"></div><div class="h-16 skel rounded-xl"></div><div class="h-16 skel rounded-xl"></div>
+    </div>
+  </section>
+
+  <!-- ════════════ 404 ════════════ -->
+  <section id="screen-notfound" hidden>
+    <div class="text-center py-24">
+      <i data-lucide="user-x" class="w-16 h-16 mx-auto text-faint"></i>
+      <h1 class="display text-2xl mt-4">ไม่พบตัวละคร</h1>
+      <p class="text-muted mt-2">ตัวละครนี้อาจถูกลบ หรือลิงก์ผิด</p>
+      <button class="focusable mt-5 bg-accent text-bg font-semibold px-5 py-2 rounded-md hover:bg-accenth" onclick="go('list')">← กลับ Characters</button>
+    </div>
+  </section>
+</main>
+
+<div class="fixed bottom-3 left-1/2 -translate-x-1/2 text-[11px] text-faint bg-surface border border-border rounded-full px-3 py-1">
+  prototype แบบคลิกได้ · mock data ไม่มี backend/auth · ของจริงทำใน <span class="text-accent">/dev</span>
+</div>
+
+<script>
+// ──────────────── mock reference data ────────────────
+const RACES = [
+  { slug:"mountain-dwarf", name:"Mountain Dwarf", bonus:{str:2,con:2}, speed:25, trait:"Darkvision, Dwarven Resilience" },
+  { slug:"high-elf", name:"High Elf", bonus:{dex:2,int:1}, speed:30, trait:"Fey Ancestry, Cantrip" },
+  { slug:"half-orc", name:"Half-Orc", bonus:{str:2,con:1}, speed:30, trait:"Relentless Endurance" },
+  { slug:"human", name:"Human", bonus:{str:1,dex:1,con:1,int:1,wis:1,cha:1}, speed:30, trait:"Versatile" },
+];
+const CLASSES = [
+  { slug:"fighter", name:"Fighter", hitDie:10, saves:["str","con"], caster:false, subLevel:3, tag:"Martial" },
+  { slug:"wizard", name:"Wizard", hitDie:6, saves:["int","wis"], caster:true, subLevel:2, tag:"Spellcaster" },
+  { slug:"cleric", name:"Cleric", hitDie:8, saves:["wis","cha"], caster:true, subLevel:1, tag:"Spellcaster" },
+  { slug:"barbarian", name:"Barbarian", hitDie:12, saves:["str","con"], caster:false, subLevel:3, tag:"Martial" },
+];
+const SUBCLASSES = {
+  fighter:[
+    {slug:"champion",name:"Champion",src:"SRD",lic:"CC-BY-4.0",desc:"นักสู้สายกายภาพล้วน เรียบง่ายแต่ทรงพลัง — คริติคอลง่ายขึ้น (Improved Critical) และร่างกายแข็งแกร่งกว่าใคร เหมาะกับผู้เล่นที่อยากโฟกัสการต่อสู้ตรง ๆ ไม่ต้องจำกลไกเยอะ"},
+    {slug:"oss-warlord",name:"Warlord (community)",src:"OGL pack",lic:"OGL-1.0a",desc:"ผู้นำสนามรบจากชุดเสริมชุมชน (OGL) — สั่งการให้พันธมิตรเคลื่อนที่/โจมตีเพิ่ม เน้นบัฟทีมมากกว่าดาเมจเดี่ยว"},
+  ],
+  wizard:[{slug:"evocation",name:"School of Evocation",src:"SRD",lic:"CC-BY-4.0",desc:"จอมเวทผู้เชี่ยวชาญเวทสร้างความเสียหาย — Sculpt Spells ปั้นพื้นที่เวทให้พวกพ้องไม่โดนลูกหลง ระเบิดศัตรูได้เต็มที่โดยไม่กลัวเพื่อนเจ็บ"}],
+  cleric:[{slug:"life",name:"Life Domain",src:"SRD",lic:"CC-BY-4.0",desc:"พระสายฮีล — เพิ่มพลังการรักษาทุกครั้ง สวมเกราะหนักได้ เป็นเสาหลักประคองทีมให้ยืนระยะ"}],
+  barbarian:[{slug:"berserker",name:"Path of the Berserker",src:"SRD",lic:"CC-BY-4.0",desc:"นักรบคลั่งสายโจมตี — Frenzy โจมตีเพิ่มขณะ Rage แลกกับความอ่อนล้า ดาเมจดิบสูงสุดของสายบาร์บาเรียน"}],
+};
+const BACKGROUNDS = [
+  { slug:"soldier", name:"Soldier", skills:["Athletics","Intimidation"], feature:"Military Rank" },
+  { slug:"sage", name:"Sage", skills:["Arcana","History"], feature:"Researcher" },
+  { slug:"criminal", name:"Criminal", skills:["Deception","Stealth"], feature:"Criminal Contact" },
+];
+const ABIL = ["str","dex","con","int","wis","cha"];
+// SRD glossary (CC-BY-4.0) — ชุดคงที่ ไม่ใช่ DB; ใน /dev = lib/characters/glossary.ts
+const ABILITY_INFO = {
+  str:{ name:"Strength", desc:"พลังกายดิบ — โจมตีระยะประชิด, ยก/ลาก/แบกของ, กระโดด และทักษะ Athletics" },
+  dex:{ name:"Dexterity", desc:"ความคล่องแคล่ว — กำหนด AC, initiative, อาวุธระยะไกล/finesse และ Acrobatics/Stealth/Sleight of Hand" },
+  con:{ name:"Constitution", desc:"ความอึดและพลังชีวิต — กำหนด HP สูงสุด, ความทนทาน และ save รักษา concentration เวท" },
+  int:{ name:"Intelligence", desc:"เหตุผลและความจำ — เวทของ Wizard และ Arcana/History/Investigation/Nature/Religion" },
+  wis:{ name:"Wisdom", desc:"การรับรู้และสัญชาตญาณ — เวทของ Cleric/Druid และ Perception/Insight/Medicine/Survival/Animal Handling" },
+  cha:{ name:"Charisma", desc:"พลังบุคลิกและการโน้มน้าว — เวทของ Bard/Sorcerer/Warlock และ Persuasion/Deception/Intimidation/Performance" },
+};
+const SKILL_INFO = {
+  Athletics:{ ab:"str", desc:"ปีนป่าย ว่ายน้ำ กระโดด ปล้ำ/ผลักศัตรู" },
+  Acrobatics:{ ab:"dex", desc:"ทรงตัว ตีลังกา หลุดจากการจับ บนพื้นลื่น/แคบ" },
+  "Sleight of Hand":{ ab:"dex", desc:"ล้วงกระเป๋า ซ่อนของในมือ มือไว" },
+  Stealth:{ ab:"dex", desc:"ย่องเงียบ ซ่อนตัวให้พ้นสายตา" },
+  Arcana:{ ab:"int", desc:"ความรู้เรื่องเวทมนตร์ สัญลักษณ์ และระนาบ" },
+  History:{ ab:"int", desc:"ความรู้เหตุการณ์ในอดีต อาณาจักร สงคราม" },
+  Investigation:{ ab:"int", desc:"หาเบาะแส อนุมานจากร่องรอย ค้นรายละเอียด" },
+  Insight:{ ab:"wis", desc:"อ่านเจตนา จับโกหก ดูภาษากายคน" },
+  Perception:{ ab:"wis", desc:"สังเกตสิ่งรอบตัวด้วยประสาทสัมผัส" },
+  Medicine:{ ab:"wis", desc:"ปฐมพยาบาล วินิจฉัยอาการป่วย" },
+  Survival:{ ab:"wis", desc:"ตามรอย หาทาง ล่าสัตว์ เอาตัวรอดในป่า" },
+  "Animal Handling":{ ab:"wis", desc:"ควบคุม/สงบสัตว์ อ่านอารมณ์สัตว์" },
+  Deception:{ ab:"cha", desc:"โกหกอย่างแนบเนียน ปลอมตัว/ปลอมเจตนา" },
+  Intimidation:{ ab:"cha", desc:"ข่มขู่ด้วยคำพูดหรือท่าที" },
+  Performance:{ ab:"cha", desc:"แสดง ร้อง เล่นดนตรี สร้างความบันเทิง" },
+  Persuasion:{ ab:"cha", desc:"โน้มน้าวด้วยเหตุผล มารยาท ไมตรี" },
+};
+const SKILLS = Object.fromEntries(Object.entries(SKILL_INFO).map(([k,v])=>[k,v.ab]));
+const STD_ARRAY = [15,14,13,12,10,8];
+
+const mod = (s)=> Math.floor((s-10)/2);
+const sign = (n)=> (n>=0?"+":"")+n;
+const pbForLevel = (lv)=> 2 + Math.floor((lv-1)/4);
+const avgDie = (d)=> Math.floor(d/2)+1;
+
+// ──────────────── screen nav ────────────────
+const SCREENS = ["list","wizard","sheet","loading","notfound"];
+function go(s){
+  SCREENS.forEach(x=> document.getElementById("screen-"+x).hidden = (x!==s));
+  if(s==="list") renderList();
+  if(s==="wizard"){ resetWizard(); }
+  if(s==="sheet") renderSheet();
+  window.scrollTo(0,0);
+  setTimeout(()=> lucide.createIcons(), 0);
+}
+
+// ──────────────── LIST ────────────────
+function renderList(){
+  const empty = document.getElementById("emptyToggle").checked;
+  const el = document.getElementById("listBody");
+  if(empty){
+    el.innerHTML = `<div class="text-center py-24 border border-dashed border-border rounded-2xl">
+      <i data-lucide="user-plus" class="w-14 h-14 mx-auto text-faint"></i>
+      <p class="text-muted mt-4">ยังไม่มีตัวละคร — สร้างตัวแรกของคุณ</p>
+      <button class="focusable mt-4 bg-accent text-bg font-semibold px-5 py-2 rounded-md hover:bg-accenth" onclick="go('wizard')">สร้างตัวละคร</button>
+    </div>`;
+    lucide.createIcons(); return;
+  }
+  el.innerHTML = `
+    <div class="text-xs text-faint uppercase tracking-wider mb-2">ของฉัน</div>
+    <button onclick="go('sheet')" class="focusable w-full text-left bg-raised border border-border rounded-2xl p-4 mb-6 hover:border-accent/60 transition" style="border-left:3px solid #D9A441">
+      <div class="flex items-center gap-3">
+        <div class="flex-1">
+          <div class="display text-lg">Thorin <span class="text-faint text-sm">●</span></div>
+          <div class="text-muted text-sm">Lv <span class="num">3</span> · Mountain Dwarf · Fighter (Champion) · Soldier</div>
+        </div>
+        <div class="text-right">
+          <div class="num text-heal text-lg">28/28 <span class="text-muted text-xs">HP</span></div>
+          <div class="num text-sm text-muted">AC 16</div>
+        </div>
+      </div>
+      <div class="h-1 mt-3 rounded bg-surface overflow-hidden"><div class="h-full bg-heal" style="width:100%"></div></div>
+    </button>
+
+    <div class="text-xs text-faint uppercase tracking-wider mb-2">ปาร์ตี้ (อ่านสรุป)</div>
+    <div class="space-y-1 mb-6">
+      ${[["Lyra","Half-Elf Bard",21],["Grix","Half-Orc Barbarian",26]].map(p=>`
+        <div class="flex items-center gap-3 px-4 py-2 bg-surface border border-border rounded-xl text-sm">
+          <span class="flex-1">${p[0]} <span class="text-muted">· Lv 3 ${p[1]}</span></span>
+          <span class="num text-muted">HP ${p[2]}</span>
+        </div>`).join("")}
+    </div>
+
+    <div class="flex items-center gap-2 mb-2">
+      <span class="text-xs text-faint uppercase tracking-wider">NPC (เฉพาะ DM)</span>
+      <button class="text-xs text-accent hover:underline focusable rounded px-1">+ NPC</button>
+    </div>
+    <div class="px-4 py-2 bg-surface border border-border rounded-xl text-sm text-muted">Old Sage · Lv 5 Human Wizard · <span class="text-faint">NPC</span></div>
+  `;
+  lucide.createIcons();
+}
+
+// ──────────────── WIZARD ────────────────
+const STEPS = ["Race","Class","Subclass","Background","Abilities","Skills","Details"];
+let W = {}; // wizard state
+function resetWizard(){
+  W = { step:0, race:null, cls:null, sub:null, bg:null, level:1,
+        method:"standard-array", array:{}, point:{str:8,dex:8,con:8,int:8,wis:8,cha:8}, skills:[], name:"" };
+  renderWizard();
+}
+function renderStepper(){
+  document.getElementById("stepper").innerHTML = STEPS.map((s,i)=>{
+    const done=i<W.step, cur=i===W.step;
+    const cls = cur?"bg-accent/15 text-accent border-accent":done?"text-heal border-border":"text-faint border-border";
+    return `<li class="px-2.5 py-1 rounded-md border ${cls} text-xs flex items-center gap-1">
+      <span class="num">${done?"✓":i+1}</span> ${s}</li>`;
+  }).join("");
+}
+function renderWizard(){
+  renderStepper();
+  const b = document.getElementById("stepBody");
+  const step = STEPS[W.step];
+  if(step==="Race") b.innerHTML = grid(RACES, W.race, "race", r=>`
+      <div class="font-semibold">${r.name}</div>
+      <div class="text-xs text-muted mt-1">${Object.entries(r.bonus).map(([k,v])=>`<span class="num">${k.toUpperCase()} +${v}</span>`).join(" · ")}</div>
+      <div class="text-xs text-faint mt-1 num">speed ${r.speed}ft</div>
+      <div class="text-xs text-muted mt-1">${r.trait}</div>`);
+  else if(step==="Class") b.innerHTML = grid(CLASSES, W.cls, "cls", c=>`
+      <div class="font-semibold">${c.name}</div>
+      <div class="text-xs num text-muted mt-1">d${c.hitDie} · saves ${c.saves.map(s=>s.toUpperCase()).join("/")}</div>
+      <div class="text-xs mt-1 ${c.caster?'text-arcane':'text-muted'}">${c.tag}</div>`);
+  else if(step==="Subclass") b.innerHTML = renderSubclass();
+  else if(step==="Background") b.innerHTML = grid(BACKGROUNDS, W.bg, "bg", g=>`
+      <div class="font-semibold">${g.name}</div>
+      <div class="text-xs text-muted mt-1">skills: ${g.skills.join(", ")}</div>
+      <div class="text-xs text-faint mt-1">${g.feature}</div>`);
+  else if(step==="Abilities") b.innerHTML = renderAbilities();
+  else if(step==="Skills") b.innerHTML = renderSkills();
+  else if(step==="Details") b.innerHTML = renderDetails();
+  bindStepInputs();
+  updatePreview();
+  updateNav();
+  lucide.createIcons();
+}
+function grid(list, selected, key, body){
+  return `<div class="grid sm:grid-cols-2 gap-3">${list.map(item=>{
+    const sel = selected && selected.slug===item.slug;
+    return `<button onclick="pick('${key}','${item.slug}')" class="focusable text-left p-3 rounded-xl border ${sel?'border-accent bg-accent/10':'border-border bg-raised hover:border-accent/50'}">${body(item)}</button>`;
+  }).join("")}</div>`;
+}
+function pick(key,slug){
+  if(key==="race") W.race = RACES.find(r=>r.slug===slug);
+  if(key==="cls"){ W.cls = CLASSES.find(c=>c.slug===slug); W.sub=null; W.skills=[]; }
+  if(key==="sub") W.sub = (SUBCLASSES[W.cls.slug]||[]).find(s=>s.slug===slug);
+  if(key==="bg") W.bg = BACKGROUNDS.find(g=>g.slug===slug);
+  renderWizard();
+}
+function renderSubclass(){
+  if(!W.cls) return `<p class="text-muted">เลือกคลาสก่อน</p>`;
+  if(W.level < W.cls.subLevel)
+    return `<div class="p-4 rounded-xl border border-warning/40 bg-warning/10 text-sm">
+      <i data-lucide="lock" class="w-4 h-4 inline text-warning"></i>
+      ${W.cls.name} ปลดล็อก subclass ที่ <span class="num">Lv ${W.cls.subLevel}</span> — ข้ามขั้นนี้ได้ (เลือกภายหลัง)</div>`;
+  const subs = SUBCLASSES[W.cls.slug]||[];
+  if(!subs.length) return `<p class="text-muted text-sm">ไม่มี subclass เปิดสำหรับคลาสนี้ (subclass อื่นเป็นลิขสิทธิ์ ไม่รวมในชุดเปิด)</p>`;
+  return `<div class="grid sm:grid-cols-2 gap-3">${subs.map(s=>{
+    const sel=W.sub&&W.sub.slug===s.slug;
+    const chip = s.src==="SRD" ? `<span class="text-[10px] text-heal border border-heal/40 rounded px-1">SRD</span>` : `<span class="text-[10px] text-arcane border border-arcane/40 rounded px-1">${s.lic}</span>`;
+    return `<button onclick="pick('sub','${s.slug}')" class="focusable text-left p-3 rounded-xl border ${sel?'border-accent bg-accent/10':'border-border bg-raised hover:border-accent/50'}">
+      <div class="flex items-center gap-2"><span class="font-semibold">${s.name}</span> ${chip}</div>
+      <div class="text-xs text-muted mt-1.5 leading-relaxed">${s.desc}</div>
+      <div class="text-[10px] text-faint mt-1.5">ที่มา: ${s.src}</div></button>`;
+  }).join("")}</div>`;
+}
+function renderAbilities(){
+  const tab=(m,l)=>`<button onclick="setMethod('${m}')" class="focusable px-3 py-1.5 rounded-md text-sm ${W.method===m?'bg-accent text-bg':'border border-border'}">${l}</button>`;
+  let body = W.method==="standard-array" ? arrayWidget() : pointWidget();
+  const gloss = `<details class="mt-4 group">
+      <summary class="cursor-pointer text-xs text-muted hover:text-text select-none">ℹ️ ค่าพลังแต่ละตัวคืออะไร? (คลิกดู)</summary>
+      <div class="mt-2 grid sm:grid-cols-2 gap-1.5">${ABIL.map(a=>`
+        <div class="bg-surface rounded-lg p-2 text-xs">
+          <span class="num text-accent font-semibold uppercase">${a}</span>
+          <span class="text-text"> ${ABILITY_INFO[a].name}</span>
+          <div class="text-muted mt-0.5 leading-relaxed">${ABILITY_INFO[a].desc}</div>
+        </div>`).join("")}</div>
+    </details>`;
+  return `<div class="flex gap-2 mb-4">${tab("standard-array","Standard Array")}${tab("point-buy","Point-Buy")}</div>${body}${gloss}`;
+}
+function setMethod(m){ W.method=m; W.array={}; W.point={str:8,dex:8,con:8,int:8,wis:8,cha:8}; renderWizard(); }
+function arrayWidget(){
+  const used = Object.values(W.array);
+  const pool = STD_ARRAY.map(v=>{ const u = used.includes(v) && used.indexOf(v)>-1; return `<span class="num px-2 py-1 rounded ${used.filter(x=>x===v).length?'bg-surface text-faint line-through':'bg-raised text-accent'}">${v}</span>`; }).join(" ");
+  return `<div class="text-xs text-faint mb-2">ค่าให้ใช้: ${pool}</div>
+    <div class="grid grid-cols-3 sm:grid-cols-6 gap-2">${ABIL.map(a=>{
+      const cur = W.array[a] ?? "";
+      const opts = ["<option value=''>—</option>"].concat(STD_ARRAY.map(v=>{
+        const usedElsewhere = Object.entries(W.array).some(([k,val])=>k!==a && val===v) && !(STD_ARRAY.filter(x=>x===v).length>1);
+        return `<option value="${v}" ${cur===v?'selected':''} ${usedElsewhere?'disabled':''}>${v}</option>`;
+      })).join("");
+      const total = cur!=="" ? cur + bonusFor(a) : "";
+      return `<div class="bg-raised border border-border rounded-lg p-2 text-center">
+        <div class="text-[10px] text-faint uppercase">${a}</div>
+        <select onchange="setArray('${a}',this.value)" class="bg-surface focusable rounded text-center num w-full py-1">${opts}</select>
+        <div class="num text-xs ${cur!==''?'text-accent':'text-faint'}">${cur!==''?sign(mod(total)):"—"}</div>
+      </div>`;
+    }).join("")}</div>`;
+}
+function setArray(a,v){ if(v==="") delete W.array[a]; else W.array[a]=parseInt(v); renderWizard(); }
+function pointCost(s){ return s<=13 ? s-8 : (s===14?7:9); }
+function pointWidget(){
+  const spent = ABIL.reduce((t,a)=>t+pointCost(W.point[a]),0);
+  const left = 27-spent;
+  return `<div class="mb-3 text-sm">แต้มคงเหลือ: <span class="num text-xl ${left<0?'text-hp':'text-accent'}">${left}</span> <span class="text-faint num">/ 27</span>
+      ${left<0?`<span class="text-hp text-xs ml-2">แต้มไม่พอ — ลดค่าลง</span>`:""}</div>
+    <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">${ABIL.map(a=>{
+      const s=W.point[a], total=s+bonusFor(a);
+      return `<div class="bg-raised border border-border rounded-lg p-2 flex items-center gap-2">
+        <span class="text-[10px] text-faint uppercase w-8">${a}</span>
+        <button onclick="setPoint('${a}',-1)" class="focusable w-7 h-7 rounded bg-surface hover:bg-border ${s<=8?'opacity-40':''}">−</button>
+        <span class="num w-7 text-center">${s}</span>
+        <button onclick="setPoint('${a}',1)" class="focusable w-7 h-7 rounded bg-surface hover:bg-border ${s>=15||left<=0?'opacity-40':''}">+</button>
+        <span class="num text-xs text-accent ml-auto">${sign(mod(total))}</span>
+      </div>`;
+    }).join("")}</div>
+    <div class="text-xs text-faint mt-2">ต้นทุน: 8–13 = 1/แต้ม, 14 = 7, 15 = 9 (PHB)</div>`;
+}
+function setPoint(a,d){
+  const s=W.point[a]+d; if(s<8||s>15) return;
+  const spent = ABIL.reduce((t,x)=>t+pointCost(x===a?s:W.point[x]),0);
+  if(spent>27) return;
+  W.point[a]=s; renderWizard();
+}
+function bonusFor(a){ return (W.race && W.race.bonus[a]) ? W.race.bonus[a] : 0; }
+function abilities(){
+  const out={};
+  ABIL.forEach(a=>{ const base = W.method==="standard-array" ? (W.array[a]??0) : W.point[a]; out[a]= base + bonusFor(a); });
+  return out;
+}
+function renderSkills(){
+  if(!W.cls) return `<p class="text-muted">เลือกคลาสก่อน</p>`;
+  const pool = Object.keys(SKILLS);
+  const need = 2;
+  return `<div class="text-sm text-muted mb-3">เลือก skill proficiency จากคลาส <span class="num">(${W.skills.length}/${need})</span> — เมื่อ proficient จะได้ +PB ทบกับ modifier ของค่าพลังที่กำกับ</div>
+    <div class="grid sm:grid-cols-2 gap-1.5">${pool.map(sk=>{
+      const on=W.skills.includes(sk), full=W.skills.length>=need && !on;
+      return `<label class="flex items-start gap-2 px-3 py-2 rounded-lg border ${on?'border-accent bg-accent/10':'border-border'} ${full?'opacity-40':''}">
+        <input type="checkbox" ${on?'checked':''} ${full?'disabled':''} onchange="toggleSkill('${sk}')" class="accent-accent mt-0.5" />
+        <span class="flex-1">
+          <span class="flex items-center gap-2"><span class="font-medium">${sk}</span><span class="num text-[10px] text-faint border border-border rounded px-1">${SKILLS[sk].toUpperCase()}</span></span>
+          <span class="block text-xs text-muted mt-0.5 leading-relaxed">${SKILL_INFO[sk].desc}</span>
+        </span></label>`;
+    }).join("")}</div>`;
+}
+function toggleSkill(sk){ const i=W.skills.indexOf(sk); if(i>-1)W.skills.splice(i,1); else if(W.skills.length<2)W.skills.push(sk); renderWizard(); }
+function renderDetails(){
+  return `<div class="space-y-4 max-w-sm">
+    <div><label class="text-xs text-faint uppercase">ชื่อตัวละคร</label>
+      <input id="nameInput" value="${W.name}" oninput="W.name=this.value;updateNav();updatePreview()" placeholder="เช่น Thorin" class="focusable w-full mt-1 bg-surface border border-border rounded-lg px-3 py-2" /></div>
+    <div><label class="text-xs text-faint uppercase">Level เริ่ม</label>
+      <div class="flex items-center gap-2 mt-1">
+        <button onclick="setLevel(-1)" class="focusable w-8 h-8 rounded bg-surface">−</button>
+        <span class="num text-xl w-10 text-center">${W.level}</span>
+        <button onclick="setLevel(1)" class="focusable w-8 h-8 rounded bg-surface">+</button>
+        <span class="text-xs text-faint">PB <span class="num">${sign(pbForLevel(W.level))}</span></span>
+      </div></div>
+    ${W.cls&&W.cls.caster?`<div class="text-xs text-arcane border border-arcane/30 rounded-lg p-3">เป็น caster — ขั้นนี้จะให้เลือกเวทเริ่มต้น (mock)</div>`:""}
+  </div>`;
+}
+function setLevel(d){ W.level=Math.max(1,Math.min(20,W.level+d)); renderWizard(); }
+function bindStepInputs(){}
+
+function updatePreview(){
+  document.getElementById("previewName").textContent = W.name || "ตัวละคร (ร่าง)";
+  const meta=[W.race&&W.race.name, W.cls&&W.cls.name, W.sub&&("("+W.sub.name+")"), W.bg&&W.bg.name].filter(Boolean).join(" · ");
+  document.getElementById("previewMeta").textContent = meta || "—";
+  const ab = abilities();
+  const conMod = mod(ab.con||10);
+  const hp = W.cls ? (W.cls.hitDie + conMod) + (W.level-1)*(avgDie(W.cls.hitDie)+conMod) : null;
+  document.getElementById("pvHp").textContent = hp!=null?hp:"—";
+  document.getElementById("pvAc").textContent = W.race? (10+mod(ab.dex||10)) : "—";
+  document.getElementById("pvSpd").textContent = W.race?W.race.speed:"—";
+  document.getElementById("pvPb").textContent = sign(pbForLevel(W.level));
+  document.getElementById("pvAbilities").innerHTML = ABIL.map(a=>{
+    const v = (W.method==="standard-array"?(W.array[a]!=null):(true)) && W.race!=null ? ab[a] : (W.array[a]!=null||W.method==="point-buy"?ab[a]:null);
+    const show = (W.method==="point-buy"||W.array[a]!=null);
+    return `<div class="bg-surface rounded p-1 text-center"><div class="text-[9px] text-faint uppercase">${a}</div>
+      <div class="num text-sm">${show?ab[a]:"—"}</div><div class="num text-[10px] text-accent">${show?sign(mod(ab[a])):""}</div></div>`;
+  }).join("");
+}
+function stepValid(){
+  const s=STEPS[W.step];
+  if(s==="Race") return !!W.race;
+  if(s==="Class") return !!W.cls;
+  if(s==="Subclass") return W.level<W.cls.subLevel || !!W.sub || (SUBCLASSES[W.cls.slug]||[]).length===0;
+  if(s==="Background") return !!W.bg;
+  if(s==="Abilities") return W.method==="standard-array" ? Object.keys(W.array).length===6 : ABIL.reduce((t,a)=>t+pointCost(W.point[a]),0)<=27;
+  if(s==="Skills") return W.skills.length===2;
+  if(s==="Details") return W.name.trim().length>0;
+  return true;
+}
+function updateNav(){
+  document.getElementById("backBtn").disabled = W.step===0;
+  const nb=document.getElementById("nextBtn");
+  nb.disabled = !stepValid();
+  nb.textContent = W.step===STEPS.length-1 ? "สร้างตัวละคร ✓" : "ถัดไป →";
+  document.getElementById("stepHint").textContent = stepValid()?"":"กรอกขั้นนี้ให้ครบก่อน";
+}
+function stepNext(){
+  if(!stepValid()) return;
+  if(W.step===STEPS.length-1){ go("sheet"); return; }
+  W.step++; renderWizard();
+}
+function stepPrev(){ if(W.step>0){ W.step--; renderWizard(); } }
+
+// ──────────────── SHEET ────────────────
+function renderSheet(){
+  const caster = document.getElementById("casterToggle").checked;
+  const cls = caster ? "Wizard (Evocation)" : "Fighter (Champion)";
+  document.getElementById("sheetMeta").innerHTML = `Lv <span class="num">3</span> · Mountain Dwarf · ${cls} · Soldier`;
+  const ab = caster ? {str:10,dex:14,con:14,int:16,wis:12,cha:8} : {str:16,dex:13,con:15,int:10,wis:12,cha:8};
+  const saves = caster ? ["int","wis"] : ["str","con"];
+  const pb = 2;
+  document.getElementById("sheetAbilities").innerHTML = ABIL.map(a=>`
+    <div class="bg-raised border border-border rounded-lg p-2 text-center cursor-help" title="${ABILITY_INFO[a].name} — ${ABILITY_INFO[a].desc}">
+      <div class="text-[10px] text-faint uppercase">${a}</div>
+      <div class="num text-xl">${ab[a]}</div>
+      <div class="num text-xs text-accent">${sign(mod(ab[a]))}</div>
+    </div>`).join("");
+  document.getElementById("sheetSaves").innerHTML = ABIL.map(a=>{
+    const prof=saves.includes(a); const m = mod(ab[a])+(prof?pb:0);
+    return `<div class="flex items-center gap-2 cursor-help" title="${ABILITY_INFO[a].name} save — ${ABILITY_INFO[a].desc}"><span class="${prof?'text-text':'text-faint'}">${prof?'●':'○'}</span>
+      <span class="${prof?'font-semibold':'text-muted'}">${a.toUpperCase()}</span>
+      <span class="num ml-auto ${prof?'':'text-faint'}">${sign(m)}</span></div>`;
+  }).join("");
+  const skillProf = caster ? {Arcana:1,History:1} : {Athletics:1,Intimidation:1};
+  document.getElementById("sheetSkills").innerHTML = Object.keys(SKILLS).map(sk=>{
+    const prof=!!skillProf[sk]; const m = mod(ab[SKILLS[sk]])+(prof?pb:0);
+    return `<div class="flex items-center gap-2 cursor-help" title="${sk} (${SKILLS[sk].toUpperCase()}) — ${SKILL_INFO[sk].desc}"><span class="${prof?'text-text':'text-faint'}">${prof?'●':'○'}</span>
+      <span class="${prof?'font-semibold':'text-muted'}">${sk}</span>
+      <span class="num text-[10px] text-faint">${SKILLS[sk].toUpperCase()}</span>
+      <span class="num ml-auto ${prof?'':'text-faint'}">${sign(m)}</span></div>`;
+  }).join("");
+  const feats = caster
+    ? [[1,"Arcane Recovery","class"],[1,"Spellcasting","class"],[2,"Sculpt Spells","subclass"],["race","Darkvision","race"],["bg","Researcher","bg"]]
+    : [[1,"Fighting Style","class"],[1,"Second Wind","class"],[2,"Action Surge","class"],[3,"Improved Critical","subclass"],["race","Darkvision","race"],["bg","Military Rank","bg"]];
+  document.getElementById("sheetFeatures").innerHTML = feats.map((f,i)=>`
+    <button onclick="toggleFeat(${i})" class="focusable w-full text-left flex items-center gap-2 px-3 py-2 rounded-lg bg-raised hover:bg-border/50">
+      <span class="num text-xs text-faint w-10">${typeof f[0]==='number'?'Lv'+f[0]:f[0]}</span>
+      <span class="flex-1">${f[1]}</span>
+      <span class="text-[10px] text-faint border border-border rounded px-1">${f[2]}</span>
+      <i data-lucide="chevron-right" class="w-4 h-4 text-faint"></i>
+    </button>
+    <div id="feat-${i}" hidden class="text-xs text-muted px-3 pb-2">รายละเอียดความสามารถ (mock) — ของจริงดึงจากตาราง Feature ของ reference</div>`).join("");
+  const sp = document.getElementById("spellsSection");
+  sp.hidden = !caster;
+  if(caster){
+    document.getElementById("sheetSpells").innerHTML = [["fireball","Fireball",3,true,true],["mage-armor","Mage Armor",1,true,false],["magic-missile","Magic Missile",1,true,true]]
+      .map(s=>`<div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-raised">
+        <a href="#" class="text-arcane hover:underline focusable rounded">${s[1]}</a>
+        <span class="num text-xs text-faint">Lv${s[2]}</span>
+        <span class="ml-auto text-xs ${s[4]?'text-accent':'text-faint'}">${s[4]?'● prepared':'○ known'}</span></div>`).join("");
+  }
+  lucide.createIcons();
+}
+function toggleFeat(i){ const e=document.getElementById("feat-"+i); e.hidden=!e.hidden; }
+
+// init
+go("list");
+</script>
+</body>
+</html>

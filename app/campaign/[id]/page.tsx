@@ -51,12 +51,20 @@ export default function LobbyPage() {
         >
           <ArrowLeft className="w-4 h-4" aria-hidden /> Leave
         </button>
-        <Link
-          href="/reference"
-          className="text-muted hover:text-accent text-sm flex items-center gap-1.5 w-fit"
-        >
-          <BookOpen className="w-4 h-4" aria-hidden /> Reference
-        </Link>
+        <div className="flex items-center gap-4">
+          <Link
+            href="/characters"
+            className="text-muted hover:text-accent text-sm flex items-center gap-1.5 w-fit"
+          >
+            <User className="w-4 h-4" aria-hidden /> ตัวละคร
+          </Link>
+          <Link
+            href="/reference"
+            className="text-muted hover:text-accent text-sm flex items-center gap-1.5 w-fit"
+          >
+            <BookOpen className="w-4 h-4" aria-hidden /> Reference
+          </Link>
+        </div>
       </div>
 
       <CampaignHeader

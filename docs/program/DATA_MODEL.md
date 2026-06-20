@@ -14,6 +14,12 @@ This is a **skeleton**: shared entities + relationships are locked; per-entity c
 | `Spell` | 5e Reference | SRD 5.1 spell (level, school, components, slot mechanics) | [#spell](#spell) |
 | `Item` | 5e Reference | SRD 5.1 item/equipment (weapon/armor/gear, properties) | [#item](#item) |
 | `Monster` | 5e Reference | SRD 5.1 monster/statblock (CR, HP, AC, actions) | [#monster](#monster) |
+| `Class` | Characters | GLOBAL 5e class (hit die, saves, proficiencies, spellcasting); auto-fill source | [#class](#class) |
+| `Subclass` | Characters | GLOBAL subclass under a `Class` (SRD + open community); grants features by level | [#subclass](#subclass) |
+| `ClassLevel` | Characters | GLOBAL per-class 1–20 progression row (prof bonus, features, spell slots) | [#classlevel](#classlevel) |
+| `Feature` | Characters | GLOBAL class/subclass feature text, keyed to class/subclass + level | [#feature](#feature) |
+| `Race` | Characters | GLOBAL 5e race/subrace (ability bonuses, speed, traits, proficiencies) | [#race](#race) |
+| `Background` | Characters | GLOBAL 5e background (skill/tool proficiencies, starting equipment) | [#background](#background) |
 | `Character` | Characters | a player-owned 5e PC (or DM-owned NPC); the heaviest entity | [#character](#character) |
 | `CharacterItem` | Inventory | join: Character ↔ Item (quantity, equipped, attuned) | [#characteritem](#characteritem) |
 | `CharacterSpell` | Characters | join: Character ↔ Spell (known / prepared) | [#characterspell](#characterspell) |
@@ -75,7 +81,7 @@ Owner: Foundation. **Finalized (Sprint 0 baseline migration `foundation_baseline
 | `displayName` | String | 1–24 chars; **@@unique([campaignId, displayName])** (unique per campaign, not global) |
 | `role` | String | `dm`/`player` |
 | `sessionToken` | String | secret — reconnect identity, never broadcast |
-| `characterId` | String? | **nullable, RESERVED for Sprint 2** — becomes a real FK→Character via additive migration when Characters lands |
+| `characterId` | String? | **Finalized (Sprint 2, touched):** now **@unique FK→Character** (1:1 claim), `onDelete: SetNull`. Was a bare reserved String? in Foundation — additive migration `characters` adds the unique index + FK (column already existed & nullable, so no data impact). |
 | `isConnected` | Boolean | default true — live presence for roster |
 | `connectedAt` | DateTime | default now |
 | `lastSeenAt` | DateTime | default now — updated on heartbeat/disconnect |
@@ -143,15 +149,68 @@ Owner: 5e Reference. **Finalized (Sprint 1, migration `5e_reference`).** GLOBAL 
 | `actionsJson` | String | JSON `[{ name, desc, kind }]` (action/legendary/reaction) |
 | `source` | String | default "SRD 5.1" |
 
+### Class
+Owner: Characters. **Finalized (Sprint 2, migration `characters`).** **GLOBAL reference — no `campaignId`**, `slug` @unique, seeded (SRD 5.1 + open community), idempotent upsert. Same pattern as `Spell`/`Item`/`Monster`.
+| Column | Type | Notes |
+|--------|------|-------|
+| `id`/`slug` | String | PK cuid / **@unique** ("fighter") |
+| `name` | String | indexed |
+| `hitDie` | Int | 6/8/10/12 |
+| `primaryAbility` | String | hint |
+| `savesJson` | String | JSON `string[]` — proficient saving throws |
+| `armorProfJson`/`weaponProfJson`/`toolProfJson` | String | JSON `string[]` |
+| `skillChoicesJson` | String | JSON `{ from:[], count }` |
+| `spellcastingJson` | String? | JSON `{ ability, type }` · **null = non-caster** |
+| `subclassLevel` | Int | level subclass is chosen (Cleric 1, Fighter 3…) |
+| `source`/`license` | String | per-row provenance |
+
+### Subclass
+Owner: Characters. **Finalized (Sprint 2, `characters`).** **GLOBAL — no `campaignId`**, `slug` @unique, `classSlug` (soft ref, indexed). Columns: `name`, `flavor?` (1-line), `description?` (full player-facing explanation, shown in the create wizard), `featuresByLevelJson` (JSON `{ "3":[slug] }`), `source`, `license`. **Coverage:** SRD = 12 (1/class); open-licensed community packs (OGL/CC) add more — `license` per row. Copyrighted PHB-only subclasses excluded.
+
+> **Ability/Skill glossary (not a table):** the 6 ability scores and 18 skills are a fixed SRD set (not user-editable) — their explanatory text lives in static `lib/characters/glossary.ts` (CC-BY-4.0), not the DB. Shown as helper text/tooltips in the character wizard & sheet. No migration.
+
+### ClassLevel
+Owner: Characters. **Finalized (Sprint 2, `characters`).** **GLOBAL — no `campaignId`**. One row per (`classSlug`, `level` 1–20), **@@unique([classSlug, level])**. Columns: `proficiencyBonus` (computed `2+floor((lvl-1)/4)`), `featuresJson` (feature slugs gained), `spellSlotsJson` (by spell level, casters), `classCountersJson` (rages/ki/sorcery points…). Drives level-based auto-fill.
+
+### Feature
+Owner: Characters. **Finalized (Sprint 2, `characters`).** **GLOBAL — no `campaignId`**, `slug` @unique. Columns: `name`, `classSlug?`, `subclassSlug?`, `level`, `description`, `source`, `license`. Rendered on the sheet as features-by-level.
+
+### Race
+Owner: Characters. **Finalized (Sprint 2, `characters`).** **GLOBAL — no `campaignId`**, `slug` @unique. Columns: `name`, `parentRaceSlug?` (subrace, indexed), `abilityBonusesJson`, `size`, `speed` (Int ft.), `traitsJson`, `proficienciesJson`, `languagesJson`, `source`, `license`. Auto-fill source for speed/ability bonuses/traits.
+
+### Background
+Owner: Characters. **Finalized (Sprint 2, `characters`).** **GLOBAL — no `campaignId`**, `slug` @unique. Columns: `name`, `skillProficienciesJson`, `toolProficienciesJson`, `languagesJson`, `featureJson` (`{name,desc}`), `startingEquipment?`, `source`, `license`. Auto-fill source for background skill proficiencies.
+
 ### Character
-Owner: Characters. **Heaviest entity.** Stub: `id`, `campaignId`, `ownerSessionId?` (player owner; null/dm-owned = NPC), `isNpc`, `name`, `race`, `class`, `subclass`, `level`, ability scores (`str…cha`), `proficiencyBonus`, `maxHp`, `currentHp`, `tempHp`, `ac`, `speed`, saving-throw & skill proficiencies (JSON), `spellSlots` (JSON by level), `conditions` (JSON, set during Combat).
-> **Cross-module additive columns** (record here when added): `currency` (Inventory), `conditions` (Combat), `is_ai_draft` + `generated_by` (AI, Sprint 7).
+Owner: Characters. **Heaviest entity. Finalized (Sprint 2, migration `characters` — campaign-scoped).** Editable truth; derived scalars stay auto-synced unless listed in `overridesJson`.
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | String | PK cuid |
+| `campaignId` | String | FK→Campaign cascade, **indexed** (tenant) |
+| `ownerSessionId` | String? | **denormalized authz field, indexed** (not a relation); mirrors the claim; null = NPC/DM-owned |
+| `isNpc` | Boolean | default false |
+| `name` | String | |
+| `raceSlug`/`subraceSlug?`/`classSlug`/`subclassSlug?`/`backgroundSlug?` | String(?) | **soft refs** to GLOBAL reference (validated app-side, not DB FK) |
+| `level` | Int | 1–20, single-class v1 |
+| `str…cha` | Int | **effective** scores (assigned + race bonus), editable |
+| `abilityMethod` | String | `standard-array` \| `point-buy` |
+| `baseAbilitiesJson` | String | assigned pre-race scores (for recompute) |
+| `proficiencyBonus`/`maxHp`/`currentHp`/`tempHp`/`ac`/`speed`/`initiative` | Int | derived-but-overridable |
+| `savesJson`/`skillsJson` | String | JSON proficiency flags |
+| `spellSlotsJson` | String | JSON by level (caster only) |
+| `conditionsJson` | String | **RESERVED — set by Combat (S4)** |
+| `overridesJson` | String | JSON `string[]` — fields the user manually overrode (recompute skips them) |
+| `notes` | String? | |
+| `createdAt`/`updatedAt` | DateTime | |
+> **Auto-fill:** `lib/characters/rules.ts` derives defaults from the GLOBAL reference (HP from hit die, prof bonus + spell slots from `ClassLevel`, saves from `Class`, speed/bonuses from `Race`, skills from `Background`/`Class`) — deterministic code, not LLM. Default ≠ lock: every scalar is editable; `overridesJson` stops recompute from clobbering manual edits.
+> **Claim:** 1:1 with `PlayerSession` via `PlayerSession.characterId @unique` (the single relation); `ownerSessionId` kept consistent in the same tx. See [SA_BLUEPRINT](../modules/characters/SA_BLUEPRINT.md) §2.3.
+> **Cross-module additive columns** (record here when added): `currency` (Inventory), `conditions` already reserved (Combat), `is_ai_draft` + `generated_by` (AI, Sprint 7).
 
 ### CharacterItem
 Owner: Inventory (added in Sprint 3 via additive migration). Stub: `id`, `campaignId`, `characterId`, `itemId`, `quantity`, `equipped`, `attuned`.
 
 ### CharacterSpell
-Owner: Characters. Stub: `id`, `campaignId`, `characterId`, `spellId`, `known`, `prepared`.
+Owner: Characters. **Finalized (Sprint 2, migration `characters`).** Join Character ↔ Spell. Columns: `id`, `campaignId` (denormalized tenant scope), `characterId` (FK→Character cascade, indexed), **`spellSlug` (FK→`Spell.slug`** — slug, not id, stable across reseed), `known` (Boolean), `prepared` (Boolean). **@@unique([characterId, spellSlug])**.
 
 ### Encounter
 Owner: Combat. Stub: `id`, `campaignId`, `name`, `locationId?`, `status` (`planned`|`active`|`done`), `round`, `activeCombatantId?`, `createdAt`.
