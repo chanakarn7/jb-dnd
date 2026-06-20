@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Inventory — Prototype (Sprint 3)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+:root{
+  --bg:#0B0E14; --surface:#151A23; --surface-raised:#1E2530; --border:#2A323F;
+  --text:#F1F5F9; --text-muted:#94A3B8; --text-faint:#64748B;
+  --accent:#D9A441; --accent-hover:#E8B95C; --arcane:#8B5CF6;
+  --danger:#EF4444; --success:#22C55E; --warning:#F59E0B;
+  --r-sm:6px; --r-md:10px; --r-lg:16px;
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--bg); color:var(--text);
+  font-family:'Inter',system-ui,sans-serif; font-size:16px; line-height:1.5;
+  padding:24px;
+}
+.num{font-family:'JetBrains Mono',monospace; font-variant-numeric:tabular-nums}
+h1,h2,h3,.cinzel{font-family:'Cinzel',serif}
+.wrap{max-width:880px; margin:0 auto}
+.banner{font-size:12px; color:var(--text-faint); text-align:center; margin-bottom:16px}
+.card{background:var(--surface); border:1px solid var(--border); border-radius:var(--r-lg); padding:24px; margin-bottom:24px}
+.sheet-title{font-size:24px; font-weight:700; color:var(--accent); margin:0 0 4px}
+.sheet-sub{color:var(--text-muted); font-size:14px; margin:0 0 20px}
+
+/* section header */
+.inv-head{display:flex; align-items:center; gap:12px; flex-wrap:wrap}
+.inv-head h3{font-size:20px; margin:0; display:flex; align-items:center; gap:8px}
+.counter{margin-left:auto; font-size:14px; color:var(--text-muted); display:flex; align-items:center; gap:6px}
+.counter.full{color:var(--warning)}
+.divider{height:1px; background:var(--border); margin:16px 0}
+
+/* buttons */
+.btn{font-family:inherit; font-size:14px; font-weight:600; border-radius:var(--r-md); padding:8px 14px; border:1px solid var(--border); background:var(--surface-raised); color:var(--text); cursor:pointer; display:inline-flex; align-items:center; gap:6px; transition:.12s}
+.btn:hover{border-color:var(--accent)}
+.btn:active{transform:translateY(1px)}
+.btn:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
+.btn-primary{background:var(--accent); color:#0B0E14; border-color:var(--accent)}
+.btn-primary:hover{background:var(--accent-hover); border-color:var(--accent-hover)}
+.btn[disabled]{opacity:.4; cursor:not-allowed}
+.btn-danger{color:var(--danger); border-color:var(--border)}
+.btn-danger:hover{border-color:var(--danger); background:rgba(239,68,68,.08)}
+
+/* item row */
+.row{display:flex; align-items:center; gap:12px; padding:12px; border-radius:var(--r-md); flex-wrap:wrap}
+.row:hover{background:var(--surface-raised)}
+.row .name{font-weight:500; min-width:140px}
+.row .name button{background:none;border:none;color:var(--text);font:inherit;font-weight:500;cursor:pointer;padding:0;text-align:left}
+.row .name button:hover{color:var(--accent)}
+.badges{display:flex; gap:6px; flex-wrap:wrap}
+.badge{font-size:12px; padding:2px 8px; border-radius:var(--r-sm); border:1px solid var(--border); color:var(--text-muted); white-space:nowrap}
+.badge.rarity-magic{border-color:var(--arcane); color:var(--text)}
+.badge.attune{border-color:var(--arcane); color:var(--arcane); display:inline-flex; align-items:center; gap:4px}
+.spacer{flex:1 1 auto}
+.controls{display:flex; align-items:center; gap:8px; flex-wrap:wrap}
+
+/* stepper */
+.stepper{display:inline-flex; align-items:center; border:1px solid var(--border); border-radius:var(--r-md); overflow:hidden}
+.stepper button{width:32px; height:32px; background:var(--surface-raised); color:var(--text); border:none; cursor:pointer; font-size:16px}
+.stepper button:hover:not([disabled]){background:var(--border)}
+.stepper button[disabled]{opacity:.35; cursor:not-allowed}
+.stepper .qty{width:40px; text-align:center; background:transparent; border:none; color:var(--text); font-family:'JetBrains Mono',monospace; font-variant-numeric:tabular-nums; font-size:14px}
+.stepper .qty:focus-visible{outline:2px solid var(--accent); outline-offset:-2px}
+
+/* toggles */
+.toggle{font-size:13px; padding:6px 10px; border-radius:var(--r-md); border:1px solid var(--border); background:transparent; color:var(--text-muted); cursor:pointer; display:inline-flex; align-items:center; gap:5px; transition:.12s}
+.toggle:hover{background:var(--surface-raised)}
+.toggle:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
+.toggle.on-equip{border-color:var(--success); color:var(--success)}
+.toggle.on-attune{border-color:var(--arcane); color:var(--arcane)}
+.toggle[aria-disabled="true"]{opacity:.4; cursor:not-allowed}
+
+/* empty / loading */
+.empty{text-align:center; padding:40px 16px; color:var(--text-muted)}
+.empty .ic{color:var(--text-faint); margin-bottom:8px}
+
+/* currency */
+.currency{display:flex; align-items:flex-end; gap:12px; flex-wrap:wrap; background:var(--surface-raised); padding:14px; border-radius:var(--r-md)}
+.cur-field{display:flex; flex-direction:column; gap:4px}
+.cur-field label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.04em}
+.cur-field input{width:72px; padding:6px 8px; background:var(--bg); border:1px solid var(--border); border-radius:var(--r-sm); color:var(--text); font-family:'JetBrains Mono',monospace; font-variant-numeric:tabular-nums; font-size:14px}
+.cur-field input:focus-visible{outline:3px solid var(--accent); outline-offset:1px; border-color:var(--accent)}
+.cur-field input.invalid{border-color:var(--danger)}
+.cur-total{margin-left:auto; color:var(--text-faint); font-family:'JetBrains Mono',monospace; font-variant-numeric:tabular-nums; font-size:14px}
+.cur-help{color:var(--danger); font-size:12px; width:100%; margin-top:4px; display:none}
+.cur-help.show{display:block}
+
+/* modal */
+.scrim{position:fixed; inset:0; background:rgba(0,0,0,.55); display:none; align-items:flex-start; justify-content:center; padding:48px 16px; z-index:50}
+.scrim.show{display:flex}
+.modal{background:var(--surface); border:1px solid var(--border); border-radius:var(--r-lg); width:560px; max-width:100%; box-shadow:0 4px 16px rgba(0,0,0,.4); max-height:80vh; display:flex; flex-direction:column}
+.modal-head{display:flex; align-items:center; padding:16px 20px; border-bottom:1px solid var(--border)}
+.modal-head h3{margin:0; font-size:20px}
+.modal-head .x{margin-left:auto; background:none; border:none; color:var(--text-muted); cursor:pointer; padding:4px; border-radius:var(--r-sm)}
+.modal-head .x:hover{color:var(--text); background:var(--surface-raised)}
+.modal-tools{display:flex; gap:8px; padding:12px 20px; border-bottom:1px solid var(--border); flex-wrap:wrap}
+.modal-tools input,.modal-tools select{padding:8px 10px; background:var(--bg); border:1px solid var(--border); border-radius:var(--r-md); color:var(--text); font:inherit; font-size:14px}
+.modal-tools .search{flex:1; min-width:160px}
+.modal-tools input:focus-visible,.modal-tools select:focus-visible{outline:3px solid var(--accent); outline-offset:1px}
+.results{overflow-y:auto; padding:8px 12px}
+.res-row{display:flex; align-items:center; gap:10px; padding:10px 8px; border-radius:var(--r-md)}
+.res-row:hover{background:var(--surface-raised)}
+.res-row .rn{font-weight:500}
+
+/* toast */
+.toasts{position:fixed; bottom:24px; left:50%; transform:translateX(-50%); display:flex; flex-direction:column; gap:8px; z-index:80}
+.toast{padding:10px 16px; border-radius:var(--r-md); border:1px solid var(--border); background:var(--surface-raised); color:var(--text); font-size:14px; box-shadow:0 4px 16px rgba(0,0,0,.4); display:flex; align-items:center; gap:8px}
+.toast.success{border-color:var(--success)}
+.toast.error{border-color:var(--danger)}
+
+.legend{font-size:12px; color:var(--text-faint); margin-top:4px}
+
+@media(max-width:768px){
+  .row{align-items:flex-start}
+  .row .spacer{display:none}
+  .controls{width:100%}
+}
+@media(max-width:420px){
+  .currency{gap:8px}
+  .cur-total{margin-left:0; width:100%}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="banner">Inventory — clickable prototype · mock data, ไม่มี backend (ของจริงทำใน /dev) · Sprint 3</div>
+
+  <div class="card">
+    <h1 class="sheet-title">Thorin Oakshield</h1>
+    <p class="sheet-sub">Mountain Dwarf · Fighter (Champion) · Lv 5 — <em>(mock character sheet — แสดงเฉพาะส่วน Inventory)</em></p>
+
+    <!-- Inventory section -->
+    <div class="inv-head">
+      <h3><i data-lucide="backpack"></i> ของในกระเป๋า</h3>
+      <span class="counter" id="counter"><i data-lucide="link"></i> Attuned <span class="num" id="attCount">2</span>/<span class="num">3</span></span>
+      <button class="btn btn-primary" id="openAdd"><i data-lucide="plus"></i> เพิ่มไอเทม</button>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Currency -->
+    <div class="currency" id="currency">
+      <div class="cur-field"><label>PP</label><input type="number" min="0" value="2" data-rate="10"></div>
+      <div class="cur-field"><label>GP</label><input type="number" min="0" value="148" data-rate="1"></div>
+      <div class="cur-field"><label>EP</label><input type="number" min="0" value="0" data-rate="0.5"></div>
+      <div class="cur-field"><label>SP</label><input type="number" min="0" value="35" data-rate="0.1"></div>
+      <div class="cur-field"><label>CP</label><input type="number" min="0" value="80" data-rate="0.01"></div>
+      <span class="cur-total">≈ <span class="num" id="gpTotal">0</span> gp</span>
+      <span class="cur-help" id="curHelp">ค่าเงินต้อง ≥ 0</span>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- item list -->
+    <div id="list"></div>
+
+    <p class="legend">เคล็ดลับสาธิต: ลอง unattune ของชิ้นหนึ่ง แล้วปุ่ม Attuned ของ <b>Cloak of Protection</b> จะกดได้ · ปรับช่องเงินเป็นค่าติดลบเพื่อดู validation · กด <b>ล้างทั้งหมด</b> เพื่อดู empty state</p>
+    <button class="btn btn-danger" id="clearAll" style="margin-top:8px"><i data-lucide="trash-2"></i> ล้างทั้งหมด (ดู empty state)</button>
+  </div>
+</div>
+
+<!-- Add-item modal -->
+<div class="scrim" id="scrim" role="dialog" aria-modal="true" aria-label="เพิ่มไอเทม">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>เพิ่มไอเทม</h3>
+      <button class="x" id="closeAdd" aria-label="ปิด"><i data-lucide="x"></i></button>
+    </div>
+    <div class="modal-tools">
+      <input class="search" id="search" placeholder="ค้นหาไอเทม..." aria-label="ค้นหาไอเทม" />
+      <select id="typeFilter" aria-label="กรองตามประเภท">
+        <option value="">ทุกประเภท</option>
+        <option value="weapon">weapon</option>
+        <option value="armor">armor</option>
+        <option value="adventuring-gear">adventuring-gear</option>
+        <option value="wondrous-item">wondrous-item</option>
+        <option value="ring">ring</option>
+      </select>
+    </div>
+    <div class="results" id="results"></div>
+  </div>
+</div>
+
+<div class="toasts" id="toasts"></div>
+
+<script>
+// ----- mock state (shapes mirror SA: CharacterItem + Item reference) -----
+var ATT_CAP = 3;
+var inventory = [
+  { id:'ci1', slug:'longsword',          name:'Longsword',          type:'weapon',           rarity:'mundane',  requiresAttunement:false, quantity:1,  equipped:true,  attuned:false },
+  { id:'ci2', slug:'arrows',             name:'Arrows',             type:'adventuring-gear', rarity:'mundane',  requiresAttunement:false, quantity:20, equipped:false, attuned:false },
+  { id:'ci3', slug:'chain-mail',         name:'Chain Mail',         type:'armor',            rarity:'mundane',  requiresAttunement:false, quantity:1,  equipped:true,  attuned:false },
+  { id:'ci4', slug:'ring-of-protection', name:'Ring of Protection', type:'ring',             rarity:'rare',     requiresAttunement:true,  quantity:1,  equipped:false, attuned:true  },
+  { id:'ci5', slug:'amulet-of-health',   name:'Amulet of Health',   type:'wondrous-item',    rarity:'rare',     requiresAttunement:true,  quantity:1,  equipped:false, attuned:true  },
+  { id:'ci6', slug:'cloak-of-protection',name:'Cloak of Protection',type:'wondrous-item',    rarity:'uncommon', requiresAttunement:true,  quantity:1,  equipped:false, attuned:false }
+];
+
+// reference items for the add-item modal (mock subset of SRD)
+var reference = [
+  { slug:'shortsword',    name:'Shortsword',          type:'weapon',           requiresAttunement:false },
+  { slug:'shield',        name:'Shield',              type:'armor',            requiresAttunement:false },
+  { slug:'potion-healing',name:'Potion of Healing',   type:'adventuring-gear', requiresAttunement:false },
+  { slug:'bag-of-holding',name:'Bag of Holding',      type:'wondrous-item',    requiresAttunement:false },
+  { slug:'flame-tongue',  name:'Flame Tongue',        type:'weapon',           requiresAttunement:true  },
+  { slug:'boots-of-speed',name:'Boots of Speed',      type:'wondrous-item',    requiresAttunement:true  },
+  { slug:'torch',         name:'Torch',               type:'adventuring-gear', requiresAttunement:false }
+];
+
+function countAttuned(){ return inventory.filter(function(i){return i.attuned;}).length; }
+function el(id){ return document.getElementById(id); }
+
+function toast(msg, kind){
+  var t=document.createElement('div'); t.className='toast '+(kind||''); t.setAttribute('role', kind==='error'?'alert':'status');
+  var ic = kind==='error'?'circle-alert':(kind==='success'?'circle-check':'info');
+  t.innerHTML='<i data-lucide="'+ic+'"></i><span></span>';
+  t.querySelector('span').textContent=msg;
+  el('toasts').appendChild(t); lucide.createIcons();
+  setTimeout(function(){ t.remove(); }, 2600);
+}
+
+function rarityBadge(it){
+  var magic = it.rarity && it.rarity!=='mundane';
+  return '<span class="badge'+(magic?' rarity-magic':'')+'">'+it.rarity+'</span>';
+}
+
+function renderList(){
+  var list=el('list'); list.innerHTML='';
+  if(inventory.length===0){
+    list.innerHTML='<div class="empty"><div class="ic"><i data-lucide="backpack"></i></div>'+
+      '<div>ยังไม่มีของในกระเป๋า</div></div>';
+    lucide.createIcons(); updateCounter(); return;
+  }
+  var atCap = countAttuned()>=ATT_CAP;
+  inventory.forEach(function(it){
+    var row=document.createElement('div'); row.className='row'; row.dataset.id=it.id;
+
+    var attuneBadge = it.requiresAttunement ? '<span class="badge attune"><i data-lucide="sparkles"></i> ต้อง attune</span>' : '';
+
+    var equipBtn = '<button class="toggle'+(it.equipped?' on-equip':'')+'" data-act="equip" aria-pressed="'+it.equipped+'">'+
+      '<i data-lucide="'+(it.equipped?'shield-check':'shield')+'"></i> '+(it.equipped?'สวมอยู่':'สวม')+'</button>';
+
+    var attuneBtn='';
+    if(it.requiresAttunement){
+      var disabled = (atCap && !it.attuned);
+      attuneBtn='<button class="toggle'+(it.attuned?' on-attune':'')+'" data-act="attune" aria-pressed="'+it.attuned+'"'+
+        (disabled?' aria-disabled="true" title="attune ได้สูงสุด 3 ชิ้น"':'')+'>'+
+        '<i data-lucide="'+(it.attuned?'link':'link-2')+'"></i> '+(it.attuned?'ผูกอยู่':'ผูกพลัง')+'</button>';
+    }
+
+    row.innerHTML=
+      '<span class="name"><button data-act="detail">'+it.name+'</button></span>'+
+      '<span class="badges"><span class="badge">'+it.type+'</span>'+rarityBadge(it)+attuneBadge+'</span>'+
+      '<span class="spacer"></span>'+
+      '<span class="controls">'+
+        '<span class="stepper">'+
+          '<button data-act="dec" '+(it.quantity<=1?'disabled':'')+' aria-label="ลด">−</button>'+
+          '<input class="qty" data-act="qty" value="'+it.quantity+'" aria-label="จำนวน '+it.name+'">'+
+          '<button data-act="inc" aria-label="เพิ่ม">+</button>'+
+        '</span>'+
+        equipBtn+ attuneBtn+
+        '<button class="btn btn-danger" data-act="del" aria-label="ลบ '+it.name+'"><i data-lucide="trash-2"></i></button>'+
+      '</span>';
+    list.appendChild(row);
+  });
+  lucide.createIcons();
+  updateCounter();
+}
+
+function updateCounter(){
+  var n=countAttuned();
+  el('attCount').textContent=n;
+  el('counter').classList.toggle('full', n>=ATT_CAP);
+}
+
+function findItem(id){ for(var i=0;i<inventory.length;i++){ if(inventory[i].id===id) return inventory[i]; } return null; }
+
+// ----- list interactions (event delegation) -----
+el('list').addEventListener('click', function(e){
+  var btn=e.target.closest('[data-act]'); if(!btn) return;
+  var rowEl=e.target.closest('.row'); if(!rowEl) return;
+  var it=findItem(rowEl.dataset.id); if(!it) return;
+  var act=btn.dataset.act;
+
+  if(act==='inc'){ it.quantity++; renderList(); }
+  else if(act==='dec'){ if(it.quantity>1){ it.quantity--; renderList(); } }
+  else if(act==='equip'){ it.equipped=!it.equipped; renderList(); }
+  else if(act==='attune'){
+    if(btn.getAttribute('aria-disabled')==='true'){ toast('attune ได้สูงสุด 3 ชิ้น (กำลังผูกอยู่ 3)','error'); return; }
+    if(!it.attuned && countAttuned()>=ATT_CAP){ toast('attune ได้สูงสุด 3 ชิ้น','error'); return; }
+    it.attuned=!it.attuned; renderList();
+    toast(it.attuned?('ผูกพลัง '+it.name+' แล้ว'):('ยกเลิกผูกพลัง '+it.name),'success');
+  }
+  else if(act==='del'){
+    if(confirm('ลบ '+it.name+' ออกจากกระเป๋า?')){
+      inventory=inventory.filter(function(x){return x.id!==it.id;});
+      renderList(); toast('ลบ '+it.name+' แล้ว','success');
+    }
+  }
+  else if(act==='detail'){ toast('รายละเอียด: '+it.name+' ('+it.type+', '+it.rarity+')'); }
+});
+
+// qty manual input
+el('list').addEventListener('change', function(e){
+  var inp=e.target.closest('[data-act="qty"]'); if(!inp) return;
+  var rowEl=e.target.closest('.row'); var it=findItem(rowEl.dataset.id); if(!it) return;
+  var v=parseInt(inp.value,10);
+  if(!Number.isInteger(v)||v<1){ toast('จำนวนต้องเป็นจำนวนเต็ม ≥ 1','error'); renderList(); return; }
+  it.quantity=v; renderList();
+});
+
+// ----- currency -----
+function recomputeCurrency(){
+  var inputs=el('currency').querySelectorAll('input');
+  var total=0, invalid=false;
+  inputs.forEach(function(inp){
+    var v=parseFloat(inp.value);
+    if(inp.value!=='' && (v<0 || !Number.isFinite(v))){ inp.classList.add('invalid'); invalid=true; }
+    else { inp.classList.remove('invalid'); total += (parseFloat(inp.value)||0)*parseFloat(inp.dataset.rate); }
+  });
+  el('curHelp').classList.toggle('show', invalid);
+  el('gpTotal').textContent = invalid ? '—' : (Math.round(total*100)/100);
+}
+el('currency').addEventListener('input', recomputeCurrency);
+
+// ----- add-item modal -----
+function openAdd(){ el('scrim').classList.add('show'); el('search').value=''; el('typeFilter').value=''; renderResults(); el('search').focus(); }
+function closeAdd(){ el('scrim').classList.remove('show'); }
+el('openAdd').addEventListener('click', openAdd);
+el('closeAdd').addEventListener('click', closeAdd);
+el('scrim').addEventListener('click', function(e){ if(e.target===el('scrim')) closeAdd(); });
+document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeAdd(); });
+
+function renderResults(){
+  var q=el('search').value.trim().toLowerCase();
+  var tf=el('typeFilter').value;
+  var box=el('results'); box.innerHTML='';
+  var rows=reference.filter(function(r){
+    return (!q || r.name.toLowerCase().indexOf(q)>=0) && (!tf || r.type===tf);
+  });
+  if(rows.length===0){ box.innerHTML='<div class="empty">ไม่พบไอเทมที่ตรง</div>'; return; }
+  rows.forEach(function(r){
+    var div=document.createElement('div'); div.className='res-row';
+    var ab=r.requiresAttunement?'<span class="badge attune"><i data-lucide="sparkles"></i> ต้อง attune</span>':'';
+    div.innerHTML='<span class="rn">'+r.name+'</span><span class="badge">'+r.type+'</span>'+ab+
+      '<span class="spacer" style="flex:1"></span><button class="btn" data-slug="'+r.slug+'"><i data-lucide="plus"></i> เพิ่ม</button>';
+    box.appendChild(div);
+  });
+  lucide.createIcons();
+}
+el('search').addEventListener('input', renderResults);
+el('typeFilter').addEventListener('change', renderResults);
+
+el('results').addEventListener('click', function(e){
+  var btn=e.target.closest('[data-slug]'); if(!btn) return;
+  var ref=null; for(var i=0;i<reference.length;i++){ if(reference[i].slug===btn.dataset.slug){ ref=reference[i]; break; } }
+  if(!ref) return;
+  // stack if same slug (edge 5.13)
+  var existing=null; for(var j=0;j<inventory.length;j++){ if(inventory[j].slug===ref.slug){ existing=inventory[j]; break; } }
+  if(existing){ existing.quantity++; toast('อัปเดตจำนวน '+ref.name+' เป็น '+existing.quantity); }
+  else{
+    inventory.push({ id:'ci'+Date.now(), slug:ref.slug, name:ref.name, type:ref.type, rarity:'mundane',
+      requiresAttunement:ref.requiresAttunement, quantity:1, equipped:false, attuned:false });
+    toast('เพิ่ม '+ref.name+' แล้ว','success');
+  }
+  renderList();
+});
+
+// ----- clear all (empty-state demo) -----
+el('clearAll').addEventListener('click', function(){
+  if(confirm('ล้างไอเทมทั้งหมด? (สาธิต empty state)')){ inventory=[]; renderList(); }
+});
+
+// init
+renderList();
+recomputeCurrency();
+lucide.createIcons();
+</script>
+</body>
+</html>
