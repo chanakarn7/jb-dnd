@@ -1,0 +1,999 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sprint 6 — Player UI + Dice + Dashboard Prototype</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0B0E14;
+  --surface: #151A23;
+  --surface-raised: #1E2530;
+  --border: #2A323F;
+  --text: #F1F5F9;
+  --text-muted: #94A3B8;
+  --text-faint: #64748B;
+  --accent: #D9A441;
+  --accent-hover: #E8B95C;
+  --arcane: #8B5CF6;
+  --danger: #EF4444;
+  --success: #22C55E;
+  --warning: #F59E0B;
+}
+
+body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; min-height: 100vh; overflow-x: hidden; }
+
+/* ─── NAVBAR ─────────────────────────────────── */
+#navbar {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 0 24px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 30;
+}
+.nav-title { font-family: 'Cinzel', serif; font-size: 15px; font-weight: 700; color: var(--accent); letter-spacing: 0.08em; }
+.nav-right { display: flex; align-items: center; gap: 12px; position: relative; }
+
+/* ─── SEARCH ─────────────────────────────────── */
+#search-container { display: flex; align-items: center; gap: 8px; position: relative; }
+#search-wrap {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--surface-raised);
+  border: 1px solid var(--border); border-radius: 4px;
+  padding: 0 10px;
+  width: 0; overflow: hidden; opacity: 0;
+  transition: width 0.25s ease, opacity 0.2s ease;
+}
+#search-wrap.open { width: 260px; opacity: 1; }
+#search-icon-svg { flex-shrink: 0; color: var(--text-muted); }
+#search-input {
+  background: transparent; border: none; outline: none;
+  color: var(--text); font-family: 'Inter', sans-serif; font-size: 14px;
+  width: 100%; padding: 7px 0;
+}
+#search-input::placeholder { color: var(--text-faint); }
+.icon-btn {
+  background: none; border: none; cursor: pointer; color: var(--text-muted);
+  padding: 8px; border-radius: 4px; display: flex; align-items: center; justify-content: center;
+  transition: color 0.15s; line-height: 1;
+}
+.icon-btn:hover { color: var(--text); }
+#search-close { font-size: 14px; }
+#search-dropdown {
+  display: none; position: absolute; top: 52px; right: 0; width: 340px;
+  background: var(--surface-raised); border: 1px solid var(--border); border-radius: 4px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5); max-height: 400px; overflow-y: auto; z-index: 50;
+}
+#search-dropdown.open { display: block; }
+.sd-section { padding: 8px 12px 4px; display: flex; align-items: center; gap: 8px; }
+.sd-section-label { font-family: 'Cinzel', serif; font-size: 10px; letter-spacing: 0.1em; color: var(--text-faint); text-transform: uppercase; }
+.badge { font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 2px; text-transform: uppercase; }
+.badge-ref { background: var(--arcane); color: #fff; }
+.badge-camp { background: var(--accent); color: #0B0E14; }
+.sd-row { padding: 7px 12px; cursor: pointer; transition: background 0.1s; }
+.sd-row:hover { background: rgba(217,164,65,0.08); }
+.sd-name { font-size: 14px; font-weight: 600; color: var(--text); }
+.sd-hint { font-size: 12px; color: var(--text-muted); margin-top: 1px; }
+.sd-empty { padding: 20px; text-align: center; color: var(--text-muted); font-size: 14px; }
+
+/* ─── HUD ────────────────────────────────────── */
+#hud { background: var(--surface); border-bottom: 1px solid var(--border); padding: 10px 24px; }
+.hud-inner { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+.hud-char-name { font-family: 'Cinzel', serif; font-size: 14px; color: var(--text); font-weight: 600; }
+.hud-char-class { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+/* HP */
+.hp-widget { display: flex; flex-direction: column; gap: 5px; }
+.hp-top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.hp-heart { color: var(--danger); }
+.hp-val { font-family: 'JetBrains Mono', monospace; font-size: 17px; font-weight: 500; }
+.unconscious-badge {
+  background: rgba(239,68,68,0.15); border: 1px solid var(--danger); color: var(--danger);
+  padding: 1px 7px; border-radius: 2px; font-family: 'Cinzel', serif; font-size: 9px;
+  letter-spacing: 0.05em; display: none;
+}
+.unconscious-badge.show { display: inline-block; }
+.hp-edit { display: flex; align-items: center; gap: 4px; }
+.hp-btn {
+  background: var(--surface-raised); border: 1px solid var(--border); color: var(--text);
+  width: 26px; height: 26px; border-radius: 3px; cursor: pointer; font-size: 15px;
+  display: flex; align-items: center; justify-content: center; transition: background 0.1s;
+}
+.hp-btn:hover { background: var(--border); }
+#hp-input {
+  width: 46px; background: var(--surface-raised); border: 1px solid var(--border);
+  border-radius: 3px; color: var(--text); font-family: 'JetBrains Mono', monospace;
+  font-size: 13px; text-align: center; padding: 3px;
+}
+#hp-input:focus { outline: none; border-color: var(--accent); }
+.hp-bar-wrap { width: 76px; height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+#hp-bar { height: 100%; border-radius: 2px; transition: width 0.3s, background 0.3s; }
+
+/* Stat badges */
+.stat-badge {
+  display: flex; align-items: center; gap: 5px;
+  background: var(--surface-raised); border: 1px solid var(--border); border-radius: 4px;
+  padding: 5px 10px; font-family: 'JetBrains Mono', monospace; font-size: 14px; color: var(--text);
+}
+
+/* Abilities */
+.ability-row { display: flex; gap: 5px; flex-wrap: wrap; }
+.ab-chip {
+  background: var(--surface-raised); border: 1px solid var(--border); border-radius: 4px;
+  padding: 4px 7px; cursor: pointer; text-align: center; min-width: 48px;
+  transition: border-color 0.15s, background 0.15s;
+}
+.ab-chip:hover { border-color: var(--accent); background: rgba(217,164,65,0.08); }
+.ab-chip.flash { border-color: var(--accent); background: rgba(217,164,65,0.2); }
+.ab-lbl { font-size: 9px; font-weight: 700; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.06em; }
+.ab-score { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--text); font-weight: 600; }
+.ab-mod { font-size: 10px; color: var(--text-muted); }
+
+/* Spell slots */
+.slots-col { display: flex; flex-direction: column; gap: 4px; }
+.slot-row { display: flex; align-items: center; gap: 6px; }
+.slot-lbl { font-size: 9px; color: var(--text-faint); font-family: 'JetBrains Mono', monospace; width: 26px; }
+.slot-pips { display: flex; gap: 4px; }
+.pip {
+  width: 10px; height: 10px; border-radius: 50%; cursor: pointer;
+  border: 1.5px solid var(--border); transition: background 0.15s, border-color 0.15s;
+}
+.pip.avail { background: var(--accent); border-color: var(--accent); }
+.pip.used { background: transparent; border-color: var(--text-faint); }
+.pip:hover { border-color: var(--accent); }
+
+/* Conditions */
+.cond-strip { display: flex; gap: 5px; flex-wrap: wrap; }
+.cond-pill {
+  background: rgba(239,68,68,0.13); border: 1px solid rgba(239,68,68,0.35);
+  color: var(--danger); padding: 3px 8px; border-radius: 2px; font-size: 12px;
+}
+
+/* Init button */
+.init-btn {
+  background: var(--accent); color: #0B0E14; border: none; border-radius: 4px;
+  padding: 7px 13px; font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600;
+  cursor: pointer; display: flex; align-items: center; gap: 6px; transition: background 0.15s; white-space: nowrap;
+}
+.init-btn:hover { background: var(--accent-hover); }
+
+/* ─── MAIN ───────────────────────────────────── */
+#main { padding: 24px; max-width: 1280px; margin: 0 auto; }
+.page-heading { margin-bottom: 20px; }
+.page-title { font-family: 'Cinzel', serif; font-size: 20px; color: var(--accent); font-weight: 700; }
+.page-sub { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+
+.dash-grid { display: grid; grid-template-columns: 1fr 360px; gap: 24px; }
+@media (max-width: 1024px) { .dash-grid { grid-template-columns: 1fr; } }
+
+/* Stat cards */
+.stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 18px; }
+@media (max-width: 768px) { .stat-row { grid-template-columns: repeat(2, 1fr); } }
+.stat-card { background: var(--surface-raised); border: 1px solid var(--border); border-radius: 4px; padding: 16px; }
+.stat-card-lbl { font-family: 'Cinzel', serif; font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+.stat-card-val { font-family: 'JetBrains Mono', monospace; font-size: 28px; font-weight: 600; }
+
+/* Panels */
+.panel { background: var(--surface); border: 1px solid var(--border); border-radius: 4px; margin-bottom: 16px; overflow: hidden; }
+.panel-hdr { padding: 11px 16px; font-family: 'Cinzel', serif; font-size: 13px; font-weight: 600; border-bottom: 1px solid var(--border); border-left: 3px solid var(--accent); }
+.panel-body { padding: 14px 16px; }
+
+/* Quest cards */
+.quest-card { padding: 10px 0; border-bottom: 1px solid var(--border); }
+.quest-card:last-child { border-bottom: none; }
+.quest-name { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+.quest-giver { font-size: 12px; color: var(--text-muted); margin-bottom: 7px; }
+.quest-prog-row { display: flex; align-items: center; gap: 10px; }
+.quest-prog-bar { flex: 1; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+.quest-prog-fill { height: 100%; background: var(--accent); border-radius: 3px; }
+.quest-prog-pill { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-muted); white-space: nowrap; }
+
+/* Session card */
+.session-card { display: flex; gap: 14px; align-items: flex-start; }
+.session-date { background: var(--surface-raised); border: 1px solid var(--border); border-radius: 4px; padding: 7px 10px; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; text-align: center; white-space: nowrap; }
+.session-title { font-size: 14px; font-weight: 600; margin-bottom: 5px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.xp-badge { background: rgba(139,92,246,0.2); border: 1px solid rgba(139,92,246,0.4); color: var(--arcane); padding: 2px 8px; border-radius: 2px; font-family: 'JetBrains Mono', monospace; font-size: 11px; }
+.session-excerpt { font-size: 13px; color: var(--text-muted); line-height: 1.5; }
+
+/* CTA row */
+.cta-row { display: flex; gap: 12px; margin-top: 4px; }
+.btn-primary { background: var(--accent); color: #0B0E14; border: none; border-radius: 4px; padding: 10px 20px; font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; transition: background 0.15s; }
+.btn-primary:hover { background: var(--accent-hover); }
+.btn-secondary { background: var(--surface-raised); color: var(--text-muted); border: 1px solid var(--border); border-radius: 4px; padding: 10px 20px; font-family: 'Inter', sans-serif; font-size: 14px; cursor: pointer; transition: background 0.15s, color 0.15s; }
+.btn-secondary:hover { background: var(--border); color: var(--text); }
+
+/* Roster */
+.roster-panel { background: var(--surface); border: 1px solid var(--border); border-radius: 4px; overflow: hidden; align-self: start; }
+.roster-hdr { padding: 11px 16px; font-family: 'Cinzel', serif; font-size: 14px; font-weight: 600; border-bottom: 1px solid var(--border); }
+.roster-card { padding: 12px 16px; border-bottom: 1px solid var(--border); }
+.roster-card:last-child { border-bottom: none; }
+.roster-top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
+.roster-name { font-size: 14px; font-weight: 600; }
+.roster-class { font-size: 12px; color: var(--text-muted); }
+.roster-hp-row { display: flex; align-items: center; gap: 10px; margin-bottom: 5px; }
+.roster-hp-bar { flex: 1; height: 5px; background: var(--border); border-radius: 3px; overflow: hidden; }
+.roster-hp-fill { height: 100%; border-radius: 3px; }
+.roster-hp-val { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text-muted); white-space: nowrap; }
+.unconscious-tag { color: var(--danger); font-family: 'Cinzel', serif; font-size: 10px; letter-spacing: 0.04em; }
+
+/* ─── DICE OVERLAY ────────────────────────────── */
+#dice-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 39; display: none; }
+#dice-overlay.show { display: block; }
+
+/* ─── DICE FAB ────────────────────────────────── */
+#dice-fab {
+  position: fixed; bottom: 24px; right: 24px;
+  width: 56px; height: 56px; border-radius: 50%;
+  background: var(--accent); border: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  z-index: 35; box-shadow: 0 4px 16px rgba(217,164,65,0.45);
+  transition: background 0.15s, transform 0.15s; color: #0B0E14;
+}
+#dice-fab:hover { background: var(--accent-hover); transform: scale(1.06); }
+
+/* ─── DICE PANEL ──────────────────────────────── */
+#dice-panel {
+  position: fixed; top: 0; right: -340px; width: 320px; height: 100vh;
+  background: var(--surface); border-left: 1px solid var(--border);
+  z-index: 40; display: flex; flex-direction: column;
+  transition: right 0.25s ease; overflow: hidden;
+}
+#dice-panel.open { right: 0; }
+.dp-hdr { padding: 15px 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.dp-title { font-family: 'Cinzel', serif; font-size: 15px; font-weight: 600; }
+.close-btn { background: none; border: none; cursor: pointer; color: var(--text-muted); font-size: 18px; line-height: 1; padding: 4px; border-radius: 3px; transition: color 0.15s; }
+.close-btn:hover { color: var(--text); }
+.dp-body { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+
+/* Die buttons */
+.die-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
+.die-btn {
+  background: var(--surface-raised); border: 1px solid var(--border); border-radius: 4px;
+  padding: 9px 0; font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 600;
+  color: var(--accent); cursor: pointer; text-align: center; transition: border-color 0.15s, background 0.15s;
+}
+.die-btn:hover { border-color: var(--accent); background: rgba(217,164,65,0.08); }
+.die-btn:active { background: rgba(217,164,65,0.18); }
+
+/* Formula */
+.formula-row { display: flex; gap: 7px; }
+.formula-input {
+  flex: 1; background: var(--surface-raised); border: 1px solid var(--border); border-radius: 4px;
+  padding: 7px 10px; color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 13px; outline: none;
+}
+.formula-input:focus { border-color: var(--accent); }
+.formula-input::placeholder { color: var(--text-faint); }
+.roll-btn {
+  background: var(--accent); color: #0B0E14; border: none; border-radius: 4px;
+  padding: 7px 14px; font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600;
+  cursor: pointer; transition: background 0.15s; white-space: nowrap;
+}
+.roll-btn:hover { background: var(--accent-hover); }
+.context-input {
+  width: 100%; background: var(--surface-raised); border: 1px solid var(--border); border-radius: 4px;
+  padding: 7px 10px; color: var(--text); font-family: 'Inter', sans-serif; font-size: 13px; outline: none;
+}
+.context-input:focus { border-color: var(--accent); }
+.context-input::placeholder { color: var(--text-faint); }
+#formula-err { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); color: var(--danger); padding: 6px 10px; border-radius: 4px; font-size: 12px; display: none; }
+#formula-err.show { display: block; }
+
+/* Mode pills */
+.mode-pills { display: flex; gap: 4px; }
+.mode-pill {
+  flex: 1; background: var(--surface-raised); border: 1px solid var(--border); border-radius: 999px;
+  padding: 5px 0; font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 500;
+  color: var(--text-muted); cursor: pointer; text-align: center; transition: all 0.15s;
+}
+.mode-pill.active { background: var(--accent); border-color: var(--accent); color: #0B0E14; font-weight: 600; }
+
+/* Private */
+.private-row { display: flex; align-items: center; gap: 10px; }
+.private-lbl { font-size: 13px; color: var(--text-muted); }
+.toggle { width: 36px; height: 20px; background: var(--border); border-radius: 999px; position: relative; cursor: pointer; border: none; flex-shrink: 0; transition: background 0.2s; }
+.toggle.on { background: var(--accent); }
+.toggle-knob { position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: left 0.2s; }
+.toggle.on .toggle-knob { left: 18px; }
+
+/* Result */
+#result-area { background: var(--surface-raised); border: 1px solid var(--border); border-radius: 4px; padding: 16px; text-align: center; min-height: 76px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; }
+#result-num { font-family: 'JetBrains Mono', monospace; font-size: 48px; font-weight: 600; color: var(--accent); line-height: 1; display: none; }
+#result-hint { font-size: 12px; color: var(--text-muted); display: none; }
+#result-adv { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--text-faint); display: none; }
+.result-placeholder { font-size: 13px; color: var(--text-faint); font-style: italic; }
+
+/* Feed */
+.feed-hdr { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.feed-title { font-family: 'Cinzel', serif; font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; }
+#roll-feed { display: flex; flex-direction: column; gap: 5px; max-height: 220px; overflow-y: auto; }
+.feed-row { display: grid; grid-template-columns: 28px 1fr auto; align-items: center; gap: 7px; padding: 6px 7px; background: var(--surface-raised); border-radius: 4px; border: 1px solid var(--border); }
+.feed-chip { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 700; flex-shrink: 0; }
+.feed-chip.is-dm { background: var(--arcane); color: #fff; }
+.feed-chip.is-player { background: var(--surface); border: 1px solid var(--border); color: var(--text-muted); }
+.feed-formula { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text-muted); }
+.feed-ctx { font-size: 11px; color: var(--text-faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.feed-result { font-family: 'JetBrains Mono', monospace; font-size: 15px; font-weight: 700; color: var(--accent); text-align: right; }
+.feed-time { font-size: 10px; color: var(--text-faint); text-align: right; }
+.divider { height: 1px; background: var(--border); }
+
+/* ─── TOAST ──────────────────────────────────── */
+#toast-wrap { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%); z-index: 60; display: flex; flex-direction: column; align-items: center; gap: 7px; pointer-events: none; }
+.toast { padding: 9px 20px; border-radius: 4px; font-size: 13px; font-weight: 500; max-width: 360px; text-align: center; animation: tin 0.2s ease, tout 0.2s ease 2.8s forwards; }
+.toast-gold { background: rgba(217,164,65,0.18); border: 1px solid rgba(217,164,65,0.4); color: var(--accent); }
+.toast-err { background: rgba(239,68,68,0.18); border: 1px solid rgba(239,68,68,0.4); color: var(--danger); }
+.toast-info { background: rgba(139,92,246,0.18); border: 1px solid rgba(139,92,246,0.4); color: var(--arcane); }
+@keyframes tin { from { opacity:0; transform: translateY(6px); } to { opacity:1; transform: translateY(0); } }
+@keyframes tout { from { opacity:1; } to { opacity:0; } }
+
+/* ─── FOOTER ─────────────────────────────────── */
+.proto-footer { background: var(--surface); border-top: 1px solid var(--border); padding: 10px 24px; font-size: 11px; color: var(--text-faint); text-align: center; margin-top: 32px; }
+
+/* scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--surface); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-faint); }
+</style>
+</head>
+<body>
+
+<!-- ═══ NAVBAR ═══════════════════════════════════════════════ -->
+<nav id="navbar">
+  <span class="nav-title">
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="display:inline;vertical-align:middle;margin-right:6px"><path d="M7 1L13 5V9L7 13L1 9V5L7 1Z" stroke="currentColor" stroke-width="1.5" fill="none"/><line x1="7" y1="1" x2="7" y2="13" stroke="currentColor" stroke-width="1"/><line x1="1" y1="5" x2="13" y2="5" stroke="currentColor" stroke-width="1"/><line x1="1" y1="9" x2="13" y2="9" stroke="currentColor" stroke-width="1"/></svg>
+    THORNHAVEN CAMPAIGN
+  </span>
+  <div class="nav-right">
+    <div id="search-container">
+      <div id="search-wrap">
+        <svg id="search-icon-svg" width="14" height="14" viewBox="0 0 16 16" fill="none">
+          <circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" stroke-width="1.5"/>
+          <line x1="10" y1="10" x2="14.5" y2="14.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <input id="search-input" type="text" placeholder="Search spells, quests, NPCs…" autocomplete="off" aria-label="Search">
+        <button id="search-close" class="icon-btn" aria-label="Close search">✕</button>
+      </div>
+      <button id="search-open-btn" class="icon-btn" aria-label="Open search">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+          <circle cx="7.5" cy="7.5" r="5.5" stroke="currentColor" stroke-width="1.6"/>
+          <line x1="11.5" y1="11.5" x2="16.5" y2="16.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+        </svg>
+      </button>
+      <div id="search-dropdown"></div>
+    </div>
+  </div>
+</nav>
+
+<!-- ═══ QUICK-VIEW HUD ════════════════════════════════════════ -->
+<div id="hud">
+  <div class="hud-inner">
+    <div>
+      <div class="hud-char-name">Aria Moonwhisper</div>
+      <div class="hud-char-class">Wizard · Lv 5</div>
+    </div>
+
+    <div class="hp-widget">
+      <div class="hp-top">
+        <span class="hp-heart">♥</span>
+        <span class="hp-val" id="hp-display">18 / 32</span>
+        <span class="unconscious-badge" id="unconscious-badge">UNCONSCIOUS</span>
+      </div>
+      <div class="hp-edit">
+        <button class="hp-btn" id="hp-minus" aria-label="−HP">−</button>
+        <input type="number" id="hp-input" value="18" min="0" max="32" aria-label="Current HP">
+        <button class="hp-btn" id="hp-plus" aria-label="+HP">+</button>
+      </div>
+      <div class="hp-bar-wrap"><div id="hp-bar" style="width:56%;background:var(--warning)"></div></div>
+    </div>
+
+    <div class="stat-badge">
+      <svg width="13" height="13" viewBox="0 0 14 14" fill="none" style="color:var(--text-muted)"><path d="M7 1L13 3.5V7C13 10 10 12.5 7 13C4 12.5 1 10 1 7V3.5L7 1Z" stroke="currentColor" stroke-width="1.2" fill="none"/></svg>
+      AC 13
+    </div>
+    <div class="stat-badge">
+      <svg width="13" height="13" viewBox="0 0 14 14" fill="none" style="color:var(--text-muted)"><ellipse cx="7" cy="7" rx="5.5" ry="4" stroke="currentColor" stroke-width="1.2"/><circle cx="7" cy="7" r="1.5" fill="currentColor"/></svg>
+      PP 12
+    </div>
+
+    <div class="ability-row">
+      <div class="ab-chip" onclick="quickRoll('STR',-1)">
+        <div class="ab-lbl">STR</div><div class="ab-score">8</div><div class="ab-mod">−1</div>
+      </div>
+      <div class="ab-chip" onclick="quickRoll('DEX',2)">
+        <div class="ab-lbl">DEX</div><div class="ab-score">14</div><div class="ab-mod">+2</div>
+      </div>
+      <div class="ab-chip" onclick="quickRoll('CON',1)">
+        <div class="ab-lbl">CON</div><div class="ab-score">13</div><div class="ab-mod">+1</div>
+      </div>
+      <div class="ab-chip" onclick="quickRoll('INT',4)">
+        <div class="ab-lbl">INT</div><div class="ab-score">18</div><div class="ab-mod">+4</div>
+      </div>
+      <div class="ab-chip" onclick="quickRoll('WIS',1)">
+        <div class="ab-lbl">WIS</div><div class="ab-score">12</div><div class="ab-mod">+1</div>
+      </div>
+      <div class="ab-chip" onclick="quickRoll('CHA',0)">
+        <div class="ab-lbl">CHA</div><div class="ab-score">10</div><div class="ab-mod">+0</div>
+      </div>
+    </div>
+
+    <div id="slots-ui" class="slots-col"></div>
+
+    <div class="cond-strip">
+      <span class="cond-pill">⬡ Poisoned</span>
+    </div>
+
+    <button class="init-btn" onclick="rollInitiative()">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><polygon points="7,1 13,4.5 13,9.5 7,13 1,9.5 1,4.5" stroke="#0B0E14" stroke-width="1.3" fill="none"/><text x="7" y="9.5" text-anchor="middle" fill="#0B0E14" font-size="5" font-family="JetBrains Mono,monospace">d20</text></polygon></svg>
+      Roll Initiative
+    </button>
+  </div>
+</div>
+
+<!-- ═══ MAIN DASHBOARD ════════════════════════════════════════ -->
+<div id="main">
+  <div class="page-heading">
+    <div class="page-title">DM Dashboard</div>
+    <div class="page-sub">Campaign overview — Thornhaven Campaign</div>
+  </div>
+
+  <div class="dash-grid">
+    <!-- LEFT -->
+    <div>
+      <div class="stat-row">
+        <div class="stat-card">
+          <div class="stat-card-lbl">
+            <svg width="13" height="13" viewBox="0 0 14 14" fill="none" style="color:var(--arcane)"><circle cx="4.5" cy="4" r="2" stroke="currentColor" stroke-width="1.2"/><circle cx="9.5" cy="4" r="2" stroke="currentColor" stroke-width="1.2"/><path d="M1 12C1 10 2.5 8.5 4.5 8.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><path d="M13 12C13 10 11.5 8.5 9.5 8.5H8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+            Players
+          </div>
+          <div class="stat-card-val" style="color:var(--arcane)">4</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-lbl">
+            <svg width="13" height="13" viewBox="0 0 14 14" fill="none" style="color:var(--accent)"><path d="M2 2L7 1L12 2V7C12 10 9.5 12.2 7 13C4.5 12.2 2 10 2 7V2Z" stroke="currentColor" stroke-width="1.2" fill="none"/><path d="M5 7L6.5 8.5L9 6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+            Active Quests
+          </div>
+          <div class="stat-card-val" style="color:var(--accent)">2</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-lbl">
+            <svg width="13" height="13" viewBox="0 0 14 14" fill="none" style="color:var(--text-muted)"><rect x="2" y="3" width="10" height="8" rx="1" stroke="currentColor" stroke-width="1.2"/><line x1="5" y1="1.5" x2="5" y2="5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><line x1="9" y1="1.5" x2="9" y2="5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><line x1="2" y1="7" x2="12" y2="7" stroke="currentColor" stroke-width="1.1"/></svg>
+            Sessions
+          </div>
+          <div class="stat-card-val">5</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-lbl">
+            <svg width="13" height="13" viewBox="0 0 14 14" fill="none" style="color:var(--success)"><polygon points="7,1 8.5,5 13,5 9.5,8 10.8,12.5 7,10 3.2,12.5 4.5,8 1,5 5.5,5" stroke="currentColor" stroke-width="1" fill="none"/></svg>
+            Total XP
+          </div>
+          <div class="stat-card-val" style="color:var(--success)">1,650</div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-hdr">▐ Active Quests</div>
+        <div class="panel-body">
+          <div class="quest-card">
+            <div class="quest-name">Find the Sunken Temple</div>
+            <div class="quest-giver">from Elder Maren</div>
+            <div class="quest-prog-row">
+              <div class="quest-prog-bar"><div class="quest-prog-fill" style="width:40%"></div></div>
+              <span class="quest-prog-pill">2 / 5</span>
+            </div>
+          </div>
+          <div class="quest-card">
+            <div class="quest-name">Thornhaven Guard Contract</div>
+            <div class="quest-giver">from Captain Reeves</div>
+            <div class="quest-prog-row">
+              <div class="quest-prog-bar"><div class="quest-prog-fill" style="width:33%"></div></div>
+              <span class="quest-prog-pill">1 / 3</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-hdr">Last Session</div>
+        <div class="panel-body">
+          <div class="session-card">
+            <div class="session-date">Jun 15<br>2026</div>
+            <div>
+              <div class="session-title">
+                Session 5 — Thornhaven Arrival
+                <span class="xp-badge">250 XP</span>
+              </div>
+              <div class="session-excerpt">The party arrived in the walled town of Thornhaven as the evening bell rang. They secured lodging at the Rusty Flagon and met Elder Maren who warned them about strange lights in the old barrow.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="cta-row">
+        <button class="btn-primary" onclick="toast('Feature available in the campaign combat view','info')">▶ Start Encounter</button>
+        <button class="btn-secondary" onclick="toast('Feature available in the campaign story view','info')">📋 Log Session</button>
+      </div>
+    </div>
+
+    <!-- RIGHT: ROSTER -->
+    <div>
+      <div class="roster-panel">
+        <div class="roster-hdr">Party Roster</div>
+        <div class="roster-card">
+          <div class="roster-top"><span class="roster-name">Aria Moonwhisper</span><span class="roster-class">Wizard · Lv 5</span></div>
+          <div class="roster-hp-row">
+            <div class="roster-hp-bar"><div class="roster-hp-fill" style="width:56%;background:var(--warning)"></div></div>
+            <span class="roster-hp-val">18 / 32</span>
+          </div>
+          <div class="cond-strip"><span class="cond-pill" style="font-size:11px;padding:2px 6px">⬡ Poisoned</span></div>
+        </div>
+        <div class="roster-card">
+          <div class="roster-top"><span class="roster-name">Bodrick Stonehammer</span><span class="roster-class">Fighter · Lv 3</span></div>
+          <div class="roster-hp-row">
+            <div class="roster-hp-bar"><div class="roster-hp-fill" style="width:100%;background:var(--success)"></div></div>
+            <span class="roster-hp-val">28 / 28</span>
+          </div>
+          <div style="font-size:12px;color:var(--text-faint)">—</div>
+        </div>
+        <div class="roster-card">
+          <div class="roster-top"><span class="roster-name">Thorn Quickfingers</span><span class="roster-class">Rogue · Lv 4</span></div>
+          <div class="roster-hp-row">
+            <div class="roster-hp-bar"><div class="roster-hp-fill" style="width:0%;background:var(--danger)"></div></div>
+            <span class="roster-hp-val" style="color:var(--danger)">0 / 36</span>
+          </div>
+          <span class="unconscious-tag">☠ UNCONSCIOUS</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="proto-footer">⚠ Prototype only — mock data, no backend · Sprint 6 Player UI + Dice + Dashboard · D&amp;D Campaign Manager</div>
+
+<!-- ═══ DICE OVERLAY ══════════════════════════════════════════ -->
+<div id="dice-overlay" onclick="closeDice()"></div>
+
+<!-- ═══ DICE FAB ══════════════════════════════════════════════ -->
+<button id="dice-fab" onclick="toggleDice()" aria-label="Open Dice Roller">
+  <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
+    <polygon points="13,2 24,8 24,18 13,24 2,18 2,8" stroke="currentColor" stroke-width="1.8" fill="none"/>
+    <text x="13" y="17.5" text-anchor="middle" fill="currentColor" font-size="6.5" font-family="JetBrains Mono,monospace" font-weight="600">d20</text>
+  </svg>
+</button>
+
+<!-- ═══ DICE PANEL ════════════════════════════════════════════ -->
+<div id="dice-panel" role="dialog" aria-label="Dice Roller">
+  <div class="dp-hdr">
+    <span class="dp-title">Dice Roller</span>
+    <button class="close-btn" onclick="closeDice()" aria-label="Close">✕</button>
+  </div>
+  <div class="dp-body">
+    <div class="die-grid">
+      <button class="die-btn" onclick="rollDie(4)">d4</button>
+      <button class="die-btn" onclick="rollDie(6)">d6</button>
+      <button class="die-btn" onclick="rollDie(8)">d8</button>
+      <button class="die-btn" onclick="rollDie(10)">d10</button>
+      <button class="die-btn" onclick="rollDie(12)">d12</button>
+      <button class="die-btn" onclick="rollDie(20)">d20</button>
+      <button class="die-btn" style="grid-column:2" onclick="rollDie(100)">d100</button>
+    </div>
+
+    <div class="divider"></div>
+
+    <div>
+      <div class="formula-row">
+        <input class="formula-input" id="formula-input" type="text" placeholder="2d6+3" aria-label="Dice formula">
+        <button class="roll-btn" onclick="doRollFormula()">Roll</button>
+      </div>
+      <div id="formula-err" style="margin-top:6px"></div>
+    </div>
+    <input class="context-input" id="ctx-input" type="text" placeholder="Attack, Skill, Save…" aria-label="Context">
+
+    <div class="mode-pills" role="group" aria-label="Roll mode">
+      <button class="mode-pill active" id="m-normal" onclick="setMode('normal')">Normal</button>
+      <button class="mode-pill" id="m-advantage" onclick="setMode('advantage')">Advantage</button>
+      <button class="mode-pill" id="m-disadvantage" onclick="setMode('disadvantage')">Disadv.</button>
+    </div>
+
+    <div class="private-row">
+      <button id="priv-toggle" class="toggle" onclick="togglePrivate()" role="switch" aria-checked="false" aria-label="Private roll">
+        <div class="toggle-knob"></div>
+      </button>
+      <span class="private-lbl">Private (DM)</span>
+    </div>
+
+    <div class="divider"></div>
+
+    <div id="result-area">
+      <span class="result-placeholder" id="result-ph">Roll a die to see result</span>
+      <span id="result-num"></span>
+      <span id="result-hint"></span>
+      <span id="result-adv"></span>
+    </div>
+
+    <div class="divider"></div>
+
+    <div>
+      <div class="feed-hdr">
+        <span class="feed-title">Recent Rolls</span>
+      </div>
+      <div id="roll-feed"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ TOAST ═════════════════════════════════════════════════ -->
+<div id="toast-wrap"></div>
+
+<script>
+/* ════════════════════════════════════════════════
+   STATE
+════════════════════════════════════════════════ */
+var S = {
+  hp: 18, hpMax: 32,
+  mode: 'normal',
+  priv: false,
+  diceOpen: false,
+  searchOpen: false,
+  slots: {
+    1: { total: 4, used: 3 },
+    2: { total: 3, used: 1 },
+    3: { total: 2, used: 0 }
+  },
+  feed: [
+    { name: 'DM', dm: true,  formula: 'd20',    result: 14, ctx: 'Perception',  t: '5 min ago' },
+    { name: 'Bo', dm: false, formula: '2d6+3',  result: 11, ctx: 'Damage',      t: '3 min ago' },
+    { name: 'Ar', dm: false, formula: 'd20+2',  result: 19, ctx: 'Initiative',  t: '1 min ago' }
+  ]
+};
+
+var SD = {
+  spells:  [{ n:'Fireball', h:'Level 3 · Evocation' }, { n:'Fire Bolt', h:'Cantrip · Evocation' }, { n:'Fire Storm', h:'Level 7 · Evocation' }],
+  items:   [{ n:'Fire Arrow', h:'Ammunition' }, { n:'Flame Tongue', h:'Weapon · Longsword' }],
+  monsters:[{ n:'Fire Giant', h:'CR 9 · Giant' }],
+  quests:  [{ n:'Find the Sunken Temple', h:'from Elder Maren' }],
+  npcs:    [{ n:'Baron Voss', h:'Villain · Blackfang Brotherhood' }]
+};
+
+/* ════════════════════════════════════════════════
+   HELPERS
+════════════════════════════════════════════════ */
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function rnd(n){ return Math.floor(Math.random()*n)+1; }
+
+function toast(msg, type) {
+  var el = document.createElement('div');
+  el.className = 'toast ' + (type === 'err' ? 'toast-err' : type === 'info' ? 'toast-info' : 'toast-gold');
+  el.textContent = msg;
+  document.getElementById('toast-wrap').appendChild(el);
+  setTimeout(function(){ if(el.parentNode) el.parentNode.removeChild(el); }, 3200);
+}
+
+/* ════════════════════════════════════════════════
+   DICE PANEL
+════════════════════════════════════════════════ */
+function toggleDice(){ S.diceOpen ? closeDice() : openDice(); }
+function openDice(){
+  S.diceOpen = true;
+  document.getElementById('dice-panel').classList.add('open');
+  document.getElementById('dice-overlay').classList.add('show');
+}
+function closeDice(){
+  S.diceOpen = false;
+  document.getElementById('dice-panel').classList.remove('open');
+  document.getElementById('dice-overlay').classList.remove('show');
+}
+
+/* ════════════════════════════════════════════════
+   MODE & PRIVATE
+════════════════════════════════════════════════ */
+function setMode(m){
+  S.mode = m;
+  ['normal','advantage','disadvantage'].forEach(function(x){
+    var el = document.getElementById('m-' + x);
+    if(el) el.classList.toggle('active', x === m);
+  });
+}
+function togglePrivate(){
+  S.priv = !S.priv;
+  var b = document.getElementById('priv-toggle');
+  b.classList.toggle('on', S.priv);
+  b.setAttribute('aria-checked', S.priv ? 'true' : 'false');
+}
+
+/* ════════════════════════════════════════════════
+   DICE ROLLING
+════════════════════════════════════════════════ */
+function parseFml(f){
+  var m = f.trim().match(/^(\d+)?[dD](\d+)([+\-]\d+)?$/);
+  if(!m) return null;
+  var count = parseInt(m[1]||'1'), sides = parseInt(m[2]), mod = parseInt(m[3]||'0');
+  if(count < 1 || count > 100 || sides < 2) return null;
+  return { count:count, sides:sides, mod:mod };
+}
+
+function rollDie(sides){
+  var ctx = document.getElementById('ctx-input').value.trim();
+  var fml = 'd' + sides;
+  var r1, r2, kept, dropped, total;
+
+  if(S.mode === 'advantage' && sides === 20){
+    r1 = rnd(20); r2 = rnd(20);
+    kept = Math.max(r1,r2); dropped = Math.min(r1,r2);
+    total = kept;
+  } else if(S.mode === 'disadvantage' && sides === 20){
+    r1 = rnd(20); r2 = rnd(20);
+    kept = Math.min(r1,r2); dropped = Math.max(r1,r2);
+    total = kept;
+  } else {
+    total = rnd(sides);
+  }
+
+  showResult(fml, total, ctx, kept, dropped);
+  if(!S.priv) addFeed('Ar', false, fml, total, ctx);
+  document.getElementById('formula-err').classList.remove('show');
+}
+
+function doRollFormula(){
+  var raw = document.getElementById('formula-input').value.trim() || 'd20';
+  var ctx = document.getElementById('ctx-input').value.trim();
+  var p = parseFml(raw);
+  var errEl = document.getElementById('formula-err');
+
+  if(!p){
+    errEl.textContent = "Invalid formula '" + esc(raw) + "' — use format like 2d6+3";
+    errEl.classList.add('show');
+    toast("Invalid formula '" + raw + "'", 'err');
+    return;
+  }
+  errEl.classList.remove('show');
+
+  var r1, r2, kept, dropped, rolls = [], total;
+
+  if(S.mode === 'advantage' && p.sides === 20 && p.count === 1){
+    r1 = rnd(20); r2 = rnd(20);
+    kept = Math.max(r1,r2); dropped = Math.min(r1,r2);
+    total = kept + p.mod;
+  } else if(S.mode === 'disadvantage' && p.sides === 20 && p.count === 1){
+    r1 = rnd(20); r2 = rnd(20);
+    kept = Math.min(r1,r2); dropped = Math.max(r1,r2);
+    total = kept + p.mod;
+  } else {
+    for(var i=0; i<p.count; i++) rolls.push(rnd(p.sides));
+    total = rolls.reduce(function(a,b){return a+b;},0) + p.mod;
+  }
+
+  showResult(raw, total, ctx, kept, dropped);
+  if(!S.priv) addFeed('Ar', false, raw, total, ctx);
+}
+
+function showResult(fml, total, ctx, kept, dropped){
+  document.getElementById('result-ph').style.display = 'none';
+  var numEl = document.getElementById('result-num');
+  var hintEl = document.getElementById('result-hint');
+  var advEl  = document.getElementById('result-adv');
+
+  numEl.style.display = 'block';
+  hintEl.style.display = 'block';
+
+  // Number cycling animation
+  var frames = 0, maxF = 8;
+  var iv = setInterval(function(){
+    numEl.textContent = Math.floor(Math.random()*(total+4))+1;
+    frames++;
+    if(frames >= maxF){ clearInterval(iv); numEl.textContent = total; }
+  }, 28);
+
+  hintEl.textContent = fml + (ctx ? '  ·  ' + ctx : '');
+
+  if(kept !== undefined && dropped !== undefined){
+    advEl.style.display = 'block';
+    advEl.innerHTML = S.mode + ': <strong style="color:var(--accent)">' + kept + '</strong>&nbsp;&nbsp;<span style="text-decoration:line-through;color:var(--text-faint)">' + dropped + '</span>';
+  } else {
+    advEl.style.display = 'none';
+  }
+}
+
+/* ════════════════════════════════════════════════
+   ROLL FEED
+════════════════════════════════════════════════ */
+function addFeed(name, isDm, formula, result, ctx){
+  S.feed.unshift({ name:name, dm:isDm, formula:formula, result:result, ctx:ctx||'', t:'just now' });
+  if(S.feed.length > 20) S.feed = S.feed.slice(0,20);
+  renderFeed();
+}
+
+function renderFeed(){
+  var c = document.getElementById('roll-feed');
+  if(!c) return;
+  c.innerHTML = '';
+  S.feed.forEach(function(r){
+    var row = document.createElement('div');
+    row.className = 'feed-row';
+    var chip = r.dm ? '<div class="feed-chip is-dm">' : '<div class="feed-chip is-player">';
+    chip += esc(r.name.slice(0,2)) + '</div>';
+    var ctx = r.ctx ? '<div class="feed-ctx">' + esc(r.ctx) + '</div>' : '';
+    row.innerHTML = chip +
+      '<div><div class="feed-formula">' + esc(r.formula) + '</div>' + ctx + '</div>' +
+      '<div><div class="feed-result">' + r.result + '</div><div class="feed-time">' + esc(r.t) + '</div></div>';
+    c.appendChild(row);
+  });
+}
+
+/* ════════════════════════════════════════════════
+   HP WIDGET
+════════════════════════════════════════════════ */
+function updateHp(){
+  var hp = S.hp, max = S.hpMax;
+  document.getElementById('hp-display').textContent = hp + ' / ' + max;
+  document.getElementById('hp-input').value = hp;
+  var pct = max > 0 ? hp/max : 0;
+  var bar = document.getElementById('hp-bar');
+  bar.style.width = (pct*100) + '%';
+  bar.style.background = pct <= 0 ? 'var(--danger)' : pct < 0.25 ? 'var(--danger)' : pct < 0.5 ? 'var(--warning)' : 'var(--success)';
+  document.getElementById('unconscious-badge').classList.toggle('show', hp <= 0);
+}
+
+document.getElementById('hp-minus').addEventListener('click', function(){
+  if(S.hp > 0){ S.hp--; updateHp(); }
+});
+document.getElementById('hp-plus').addEventListener('click', function(){
+  if(S.hp < S.hpMax){ S.hp++; updateHp(); }
+});
+document.getElementById('hp-input').addEventListener('change', function(){
+  var v = parseInt(this.value);
+  if(!isNaN(v)){ S.hp = Math.max(0, Math.min(S.hpMax, v)); updateHp(); }
+});
+document.getElementById('hp-input').addEventListener('keydown', function(e){
+  if(e.key === 'Enter') this.blur();
+});
+
+/* ════════════════════════════════════════════════
+   SPELL SLOTS
+════════════════════════════════════════════════ */
+function renderSlots(){
+  var c = document.getElementById('slots-ui');
+  if(!c) return;
+  c.innerHTML = '';
+  for(var lv=1; lv<=3; lv++){
+    var slot = S.slots[lv];
+    var avail = slot.total - slot.used;
+    var row = document.createElement('div'); row.className = 'slot-row';
+    var lbl = document.createElement('span'); lbl.className = 'slot-lbl'; lbl.textContent = 'Lv'+lv;
+    row.appendChild(lbl);
+    var pips = document.createElement('div'); pips.className = 'slot-pips';
+    for(var i=0; i<slot.total; i++){
+      var pip = document.createElement('button');
+      pip.className = 'pip ' + (i < avail ? 'avail' : 'used');
+      pip.setAttribute('aria-label', 'Level '+lv+' slot '+(i+1));
+      pip.dataset.lv = lv; pip.dataset.idx = i;
+      pip.addEventListener('click', toggleSlot);
+      pips.appendChild(pip);
+    }
+    row.appendChild(pips);
+    c.appendChild(row);
+  }
+}
+
+function toggleSlot(e){
+  var lv = parseInt(e.target.dataset.lv);
+  var idx = parseInt(e.target.dataset.idx);
+  var slot = S.slots[lv];
+  var avail = slot.total - slot.used;
+  if(idx < avail){ slot.used = Math.min(slot.total, slot.used+1); }
+  else { slot.used = Math.max(0, slot.used-1); }
+  renderSlots();
+}
+
+/* ════════════════════════════════════════════════
+   QUICK ROLLS (ability chips)
+════════════════════════════════════════════════ */
+function quickRoll(ability, mod){
+  var roll = rnd(20), total = roll + mod;
+  var label = ability + ' Check';
+  var fml = mod !== 0 ? 'd20' + (mod > 0 ? '+'+mod : mod) : 'd20';
+  openDice();
+  showResult(fml, total, label, undefined, undefined);
+  addFeed('Ar', false, fml, total, label);
+  // flash chip
+  var chips = document.querySelectorAll('.ab-chip');
+  chips.forEach(function(ch){ if(ch.querySelector('.ab-lbl') && ch.querySelector('.ab-lbl').textContent === ability){ ch.classList.add('flash'); setTimeout(function(){ ch.classList.remove('flash'); }, 500); } });
+  toast(label + ': ' + total, 'gold');
+}
+
+function rollInitiative(){
+  var roll = rnd(20), total = roll + 2;
+  openDice();
+  showResult('d20+2', total, 'Initiative', undefined, undefined);
+  addFeed('Ar', false, 'd20+2', total, 'Initiative');
+  toast('Initiative: ' + total, 'gold');
+}
+
+/* ════════════════════════════════════════════════
+   GLOBAL SEARCH
+════════════════════════════════════════════════ */
+var searchTimeout = null;
+
+document.getElementById('search-open-btn').addEventListener('click', function(){
+  S.searchOpen = true;
+  document.getElementById('search-wrap').classList.add('open');
+  this.style.display = 'none';
+  setTimeout(function(){ document.getElementById('search-input').focus(); }, 260);
+});
+
+document.getElementById('search-close').addEventListener('click', function(){ closeSearch(); });
+
+document.getElementById('search-input').addEventListener('input', function(){
+  clearTimeout(searchTimeout);
+  var q = this.value.trim();
+  if(q.length < 2){ document.getElementById('search-dropdown').classList.remove('open'); document.getElementById('search-dropdown').innerHTML=''; return; }
+  searchTimeout = setTimeout(function(){ doSearch(q); }, 300);
+});
+
+document.getElementById('search-input').addEventListener('keydown', function(e){
+  if(e.key === 'Escape') closeSearch();
+});
+
+document.addEventListener('click', function(e){
+  if(S.searchOpen && !document.getElementById('search-container').contains(e.target)) closeSearch();
+});
+
+function closeSearch(){
+  S.searchOpen = false;
+  document.getElementById('search-wrap').classList.remove('open');
+  document.getElementById('search-open-btn').style.display = '';
+  document.getElementById('search-input').value = '';
+  var dd = document.getElementById('search-dropdown');
+  dd.classList.remove('open'); dd.innerHTML = '';
+}
+
+function doSearch(q){
+  var ql = q.toLowerCase();
+  var dd = document.getElementById('search-dropdown');
+  var html = '', hasAny = false;
+
+  function section(label, badge, rows){
+    if(!rows.length) return;
+    hasAny = true;
+    html += '<div class="sd-section"><span class="sd-section-label">' + label + '</span><span class="badge ' + badge + '">' + (badge==='badge-ref'?'5e Ref':'Campaign') + '</span></div>';
+    rows.forEach(function(r){
+      html += '<div class="sd-row" onclick="searchGo(\'' + esc(r.n) + '\')">' +
+        '<div class="sd-name">' + esc(r.n) + '</div>' +
+        '<div class="sd-hint">' + esc(r.h) + '</div></div>';
+    });
+  }
+
+  section('SPELLS',   'badge-ref',  SD.spells.filter(function(x){ return x.n.toLowerCase().includes(ql); }));
+  section('ITEMS',    'badge-ref',  SD.items.filter(function(x){ return x.n.toLowerCase().includes(ql); }));
+  section('MONSTERS', 'badge-ref',  SD.monsters.filter(function(x){ return x.n.toLowerCase().includes(ql); }));
+  section('CHARACTERS','badge-camp',[]);
+  section('QUESTS',   'badge-camp', SD.quests.filter(function(x){ return x.n.toLowerCase().includes(ql) || x.h.toLowerCase().includes(ql); }));
+  section('NPCS',     'badge-camp', SD.npcs.filter(function(x){ return x.n.toLowerCase().includes(ql) || x.h.toLowerCase().includes(ql); }));
+
+  if(!hasAny) html = '<div class="sd-empty">No results for “' + esc(q) + '”</div>';
+  dd.innerHTML = html;
+  dd.classList.add('open');
+}
+
+function searchGo(name){
+  toast('Navigating to ' + name + '…', 'info');
+  closeSearch();
+}
+
+/* ════════════════════════════════════════════════
+   INIT
+════════════════════════════════════════════════ */
+updateHp();
+renderSlots();
+renderFeed();
+</script>
+</body>
+</html>

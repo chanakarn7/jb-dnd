@@ -26,6 +26,7 @@ model Campaign {
   quests         Quest[] // Sprint 5 — back-relation
   npcs           Npc[] // Sprint 5 — back-relation
   journalEntries JournalEntry[] // Sprint 5 — back-relation
+  diceRolls      DiceRoll[] // Sprint 6 — back-relation (no new column)
 
   @@index([inviteCode])
 }
@@ -42,6 +43,7 @@ model PlayerSession {
   isConnected  Boolean    @default(true)
   connectedAt  DateTime   @default(now())
   lastSeenAt   DateTime   @default(now())
+  diceRolls    DiceRoll[] // Sprint 6 — back-relation (no new column)
 
   @@unique([campaignId, displayName]) // names unique WITHIN a campaign, not globally
   @@index([campaignId])
@@ -269,9 +271,10 @@ model Character {
   spellSlotsJson   String @default("{}") // JSON: { "1": 2, ... } (caster only)
 
   // State / meta
-  conditionsJson String   @default("[]") // RESERVED — set by Combat (S4)
-  overridesJson  String   @default("[]") // JSON string[]: fields the user overrode
-  currencyJson   String   @default("{}") // Sprint 3 — JSON: { pp, gp, ep, sp, cp }
+  conditionsJson    String   @default("[]") // RESERVED — set by Combat (S4)
+  overridesJson     String   @default("[]") // JSON string[]: fields the user overrode
+  currencyJson      String   @default("{}") // Sprint 3 — JSON: { pp, gp, ep, sp, cp }
+  spellSlotsUsedJson String  @default("{}") // Sprint 6 — JSON: { "1": 1, ... } (slots consumed)
   notes          String?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
@@ -446,4 +449,29 @@ model JournalEntry {
 
   @@index([campaignId])
   @@index([campaignId, createdAt]) // reverse-chron list
+}
+
+// ── Player UI (Sprint 6) ────────────────────────────────────────────
+// Public dice rolls. Private DM rolls are NOT persisted — handled in memory only.
+// rolls = JSON string: [n, n, ...] individual die values. mode = "normal"|"advantage"|"disadvantage".
+// Migration: player_ui (CREATE TABLE only; no DROP/ALTER on existing tables).
+// See docs/modules/player-ui/SA_BLUEPRINT.md §2.
+
+model DiceRoll {
+  id              String   @id @default(cuid())
+  campaignId      String
+  playerSessionId String
+  formula         String // max 100 chars, e.g. "2d6+3"
+  result          Int
+  rolls           String // JSON: [n, n, ...] individual die results
+  context         String? // max 80 chars, e.g. "Attack", "Stealth"
+  mode            String   @default("normal") // "normal" | "advantage" | "disadvantage"
+  keptRoll        Int? // for adv/disadv: the kept d20 value
+  createdAt       DateTime @default(now())
+
+  campaign      Campaign      @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  playerSession PlayerSession @relation(fields: [playerSessionId], references: [id], onDelete: Cascade)
+
+  @@index([campaignId])
+  @@index([campaignId, createdAt])
 }

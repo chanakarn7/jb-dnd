@@ -15,12 +15,13 @@
     "db:studio": "prisma studio",
     "db:seed": "prisma db seed",
     "db:reset": "prisma migrate reset",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate && node copyDiceAssets.js"
   },
   "prisma": {
     "seed": "tsx prisma/seed/index.ts"
   },
   "dependencies": {
+    "@3d-dice/dice-box": "^1.1.4",
     "@prisma/client": "^6",
     "lucide-react": "^0.460.0",
     "next": "16.2.9",

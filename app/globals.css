@@ -63,6 +63,30 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+/* DiceBox canvas — fill its tray container (DiceBox ships no sizing CSS,
+   so without this the canvas stays at its 300x150 intrinsic default). */
+.dice-box-canvas {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+}
+
+/* Dice tray modal pop-in */
+@keyframes trayIn {
+  from { opacity: 0; transform: scale(0.92) translateY(10px); }
+  to   { opacity: 1; transform: scale(1)    translateY(0); }
+}
+/* Dice result chip pop-in */
+@keyframes chipIn {
+  from { opacity: 0; transform: scale(0.85) translateY(-10px); }
+  to   { opacity: 1; transform: scale(1)    translateY(0); }
+}
+/* "Rolling…" pulsing glow */
+@keyframes rollingPulse {
+  0%, 100% { opacity: 0.6; }
+  50%       { opacity: 1; }
+}
+
 /* visible gold focus ring everywhere (a11y) */
 *:focus-visible {
   outline: 2px solid var(--accent);

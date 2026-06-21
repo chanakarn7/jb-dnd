@@ -12,6 +12,7 @@ import * as persist from "./state/persist";
 import { registerCampaignHandlers, roomName } from "./handlers/campaign";
 import { registerSessionHandlers } from "./handlers/session";
 import { registerCombatHandlers } from "./combat";
+import { registerDiceHandlers } from "./dice";
 
 // Socket.io setup. Rooms are keyed by campaignId; every broadcast is scoped to one campaign.
 
@@ -45,6 +46,8 @@ export function createIoServer(httpServer: HttpServer) {
     registerSessionHandlers(io, socket);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     registerCombatHandlers(io as any, socket as any);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    registerDiceHandlers(io as any, socket as any);
   });
 
   return io;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import {
@@ -16,6 +16,7 @@ import {
   X,
   UserMinus,
   Hourglass,
+  LayoutDashboard,
 } from "lucide-react";
 import { useCampaign } from "../../providers";
 import { formatInviteCode } from "@/lib/inviteCode";
@@ -23,16 +24,38 @@ import { copyText } from "@/lib/clipboard";
 import type { ParticipantView } from "@/lib/events";
 import CombatTracker from "./CombatTracker";
 import StorySection from "./StorySection";
+import DicePanel, { type DicePanelRef } from "@/components/DicePanel";
+import PlayerHUD from "@/components/PlayerHUD";
+import DashboardSection from "@/components/DashboardSection";
+import GlobalSearch from "@/components/GlobalSearch";
+
+// Helper: retrieve session token from localStorage (same key as providers.tsx)
+function getStoredToken(campaignId: string): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const all = JSON.parse(localStorage.getItem("dnd.sessions") ?? "{}") as Record<string, { token: string }>;
+    return all[campaignId]?.token ?? null;
+  } catch { return null; }
+}
 
 export default function LobbyPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { state, me, resume, renameCampaign, removeParticipant, leave, toast } = useCampaign();
+  const [activeTab, setActiveTab] = useState<"campaign" | "dashboard">("campaign");
+  const dicePanelRef = useRef<DicePanelRef | null>(null);
+  const [sessionToken, setSessionToken] = useState<string | null>(null);
 
   useEffect(() => {
     // Resume the live socket for this campaign; if we have no stored seat, send to /join.
     if (!resume(id)) router.replace("/join");
   }, [id, resume, router]);
+
+  useEffect(() => {
+    if (state?.campaignId === id) {
+      setSessionToken(getStoredToken(id));
+    }
+  }, [state, id]);
 
   if (!state || state.campaignId !== id) {
     return (
@@ -44,60 +67,105 @@ export default function LobbyPage() {
 
   const isDM = me?.role === "dm";
 
+  // Find my claimed character (player HUD)
+  const myParticipant = state.participants.find((p) => p.sessionId === me?.sessionId);
+  const myCharacterId = myParticipant?.characterId ?? null;
+
   return (
-    <main className="min-h-dvh max-w-5xl mx-auto p-6 space-y-8">
-      <div className="flex items-center justify-between">
-        <button
-          onClick={leave}
-          className="text-muted hover:text-text text-sm flex items-center gap-1 w-fit"
-        >
-          <ArrowLeft className="w-4 h-4" aria-hidden /> Leave
-        </button>
-        <div className="flex items-center gap-4">
-          <Link
-            href="/characters"
-            className="text-muted hover:text-accent text-sm flex items-center gap-1.5 w-fit"
+    <>
+      {/* Player Quick-View HUD (shown when player has claimed a character) */}
+      {!isDM && myCharacterId && sessionToken && (
+        <PlayerHUD
+          characterId={myCharacterId}
+          sessionToken={sessionToken}
+          dicePanelRef={dicePanelRef}
+          onToast={toast}
+        />
+      )}
+
+      <main className="min-h-dvh max-w-5xl mx-auto p-6 space-y-8">
+        <div className="flex items-center justify-between">
+          <button
+            onClick={leave}
+            className="text-muted hover:text-text text-sm flex items-center gap-1 w-fit"
           >
-            <User className="w-4 h-4" aria-hidden /> ตัวละคร
-          </Link>
-          <Link
-            href="/reference"
-            className="text-muted hover:text-accent text-sm flex items-center gap-1.5 w-fit"
-          >
-            <BookOpen className="w-4 h-4" aria-hidden /> Reference
-          </Link>
+            <ArrowLeft className="w-4 h-4" aria-hidden /> Leave
+          </button>
+          <div className="flex items-center gap-4">
+            {/* Global Search */}
+            {sessionToken && (
+              <GlobalSearch
+                sessionToken={sessionToken}
+                onNavigate={(item) => toast(`${item.name} — navigate to ${item.type}`, "success")}
+              />
+            )}
+            <Link
+              href="/characters"
+              className="text-muted hover:text-accent text-sm flex items-center gap-1.5 w-fit"
+            >
+              <User className="w-4 h-4" aria-hidden /> ตัวละคร
+            </Link>
+            <Link
+              href="/reference"
+              className="text-muted hover:text-accent text-sm flex items-center gap-1.5 w-fit"
+            >
+              <BookOpen className="w-4 h-4" aria-hidden /> Reference
+            </Link>
+            {isDM && (
+              <button
+                onClick={() => setActiveTab((t) => t === "dashboard" ? "campaign" : "dashboard")}
+                className={`text-sm flex items-center gap-1.5 w-fit ${activeTab === "dashboard" ? "text-accent" : "text-muted hover:text-accent"}`}
+              >
+                <LayoutDashboard className="w-4 h-4" aria-hidden />
+                Dashboard
+              </button>
+            )}
+          </div>
         </div>
-      </div>
 
-      <CampaignHeader
-        name={state.name}
-        isDM={isDM}
-        onRename={async (next) => {
-          const r = await renameCampaign(next);
-          if (r.ok) toast("Campaign renamed", "success");
-          else if (!r.ok) toast(r.message ?? "Could not rename", "danger");
-        }}
-      />
+        {isDM && activeTab === "dashboard" && sessionToken ? (
+          <DashboardSection
+            sessionToken={sessionToken}
+            onNavigateToCombat={() => setActiveTab("campaign")}
+            onNavigateToStory={() => setActiveTab("campaign")}
+          />
+        ) : (
+          <>
+            <CampaignHeader
+              name={state.name}
+              isDM={isDM}
+              onRename={async (next) => {
+                const r = await renameCampaign(next);
+                if (r.ok) toast("Campaign renamed", "success");
+                else if (!r.ok) toast(r.message ?? "Could not rename", "danger");
+              }}
+            />
 
-      {isDM && <InviteHero inviteCode={state.inviteCode} toast={toast} />}
+            {isDM && <InviteHero inviteCode={state.inviteCode} toast={toast} />}
 
-      <Roster
-        participants={state.participants}
-        isDM={isDM}
-        meSessionId={me?.sessionId}
-        onRemove={async (sessionId, name) => {
-          const r = await removeParticipant(sessionId);
-          if (r.ok) toast(`${name} removed`, "warning");
-          else if (!r.ok) toast(r.message ?? "Could not remove", "danger");
-        }}
-      />
+            <Roster
+              participants={state.participants}
+              isDM={isDM}
+              meSessionId={me?.sessionId}
+              onRemove={async (sessionId, name) => {
+                const r = await removeParticipant(sessionId);
+                if (r.ok) toast(`${name} removed`, "warning");
+                else if (!r.ok) toast(r.message ?? "Could not remove", "danger");
+              }}
+            />
 
-      {/* Combat tracker — Sprint 4 */}
-      <CombatTracker campaignId={id} />
+            {/* Combat tracker — Sprint 4 */}
+            <CombatTracker campaignId={id} />
 
-      {/* Story hub — Sprint 5 */}
-      <StorySection campaignId={id} />
-    </main>
+            {/* Story hub — Sprint 5 */}
+            <StorySection campaignId={id} />
+          </>
+        )}
+      </main>
+
+      {/* Dice panel — always rendered, floating FAB */}
+      <DicePanel isDM={isDM} onRef={(ref) => { dicePanelRef.current = ref; }} />
+    </>
   );
 }
 

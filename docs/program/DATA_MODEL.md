@@ -312,7 +312,21 @@ Owner: Story. **Finalized (Sprint 5, migration `story`).** Free-form markdown ca
 Owner: Story (stub — not built in Sprint 5). Stub: `id`, `campaignId`, `name`, `type`, `description`, `parentLocationId?`.
 
 ### DiceRoll
-Owner: Player UI + Dice. Stub: `id`, `campaignId`, `sessionId?`, `actorSessionId`, `formula` (e.g. `1d20+5`), `result`, `breakdown` (JSON), `context` (e.g. "attack vs Goblin"), `rolledAt`. Broadcast-and-log.
+Owner: Player UI + Dice. **Finalized (Sprint 6, migration `player_ui`).** Broadcast-and-log; private DM rolls are NOT persisted.
+| Column | Type | Constraints |
+|--------|------|-------------|
+| `id` | String | PK, cuid |
+| `campaignId` | String | FK→Campaign, Cascade, indexed |
+| `playerSessionId` | String | FK→PlayerSession, Cascade, indexed |
+| `formula` | String | max 100 chars |
+| `result` | Int | final total |
+| `rolls` | String | JSON `[n, n, ...]` individual die results |
+| `context` | String? | max 80 chars; e.g. "Attack", "Initiative" |
+| `mode` | String | `normal`\|`advantage`\|`disadvantage`, default `normal` |
+| `keptRoll` | Int? | kept d20 for advantage/disadvantage rolls |
+| `createdAt` | DateTime | `@default(now())` |
+
+Indexes: `[campaignId]` · `[campaignId, createdAt]` (recent feed). Back-relation `diceRolls DiceRoll[]` added to `Campaign` and `PlayerSession` (Prisma-level only, no SQL change to those tables).
 
 ---
 

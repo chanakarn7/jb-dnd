@@ -142,7 +142,7 @@ describe("updateCharacter — override + recompute", () => {
     level: 3, str: 15, dex: 13, con: 16, int: 10, wis: 12, cha: 8, abilityMethod: "standard-array",
     baseAbilitiesJson: "{}", proficiencyBonus: 2, maxHp: 28, currentHp: 28, tempHp: 0, ac: 11, speed: 25, initiative: 1,
     savesJson: '{"str":true,"con":true}', skillsJson: '{"Athletics":true}', spellSlotsJson: "{}",
-    conditionsJson: "[]", overridesJson: "[]", currencyJson: "{}", notes: null, createdAt: new Date(), updatedAt: new Date(), spells: [],
+    conditionsJson: "[]", overridesJson: "[]", currencyJson: "{}", spellSlotsUsedJson: "{}", notes: null, createdAt: new Date(), updatedAt: new Date(), spells: [],
   });
 
   it("editing a derived field records it as an override and persists the user value", async () => {
