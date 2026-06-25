@@ -2,6 +2,8 @@ import { createServer } from "node:http";
 import next from "next";
 import { createIoServer } from "./io";
 import { rehydrateOnBoot } from "./state/persist";
+import { OllamaProvider } from "../lib/ai/ollama";
+import { setLLMProvider } from "../lib/llm/registry";
 
 // Single Node process serving BOTH the Next.js app AND Socket.io on one HTTP server,
 // bound to 0.0.0.0 so players on the LAN can reach it (docs/program/ARCHITECTURE.md).
@@ -20,6 +22,24 @@ app
 
     // Attach the realtime layer to the same HTTP server.
     createIoServer(httpServer);
+
+    // AI DM Assistant (Sprint 7): probe Ollama once at boot; register it as the
+    // active LLM provider only if reachable. App runs fully without it (graceful
+    // degrade) — the AI panel shows a banner and Import still works.
+    const ollama = new OllamaProvider();
+    ollama
+      .isAvailable()
+      .then((okAvail) => {
+        if (okAvail) {
+          setLLMProvider(ollama);
+          console.log("✦ AI: Ollama connected — generation enabled");
+        } else {
+          console.warn("✦ AI: Ollama not reachable — generation disabled (Import still works)");
+        }
+      })
+      .catch(() => {
+        console.warn("✦ AI: Ollama probe failed — generation disabled (Import still works)");
+      });
 
     // Rebuild live state for any active campaigns after a restart.
     let rehydrated = 0;

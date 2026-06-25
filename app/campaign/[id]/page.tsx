@@ -28,6 +28,7 @@ import DicePanel, { type DicePanelRef } from "@/components/DicePanel";
 import PlayerHUD from "@/components/PlayerHUD";
 import DashboardSection from "@/components/DashboardSection";
 import GlobalSearch from "@/components/GlobalSearch";
+import AIDMSection from "@/components/ai/AIDMSection";
 
 // Helper: retrieve session token from localStorage (same key as providers.tsx)
 function getStoredToken(campaignId: string): string | null {
@@ -159,6 +160,9 @@ export default function LobbyPage() {
 
             {/* Story hub — Sprint 5 */}
             <StorySection campaignId={id} />
+
+            {/* AI DM Assistant — Sprint 7 (DM-only; self-guards) */}
+            {isDM && <AIDMSection campaignId={id} />}
           </>
         )}
       </main>

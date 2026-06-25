@@ -31,6 +31,7 @@ This is a **skeleton**: shared entities + relationships are locked; per-entity c
 | `JournalEntry` | Story | free-form markdown journal entry, optionally linked to a Session | [#journalentry](#journalentry) |
 | `Location` | Story | a place (town, dungeon, region) — stub, not built Sprint 5 | [#location](#location) |
 | `DiceRoll` | Player UI + Dice | a broadcast roll (formula, result, who, context) | [#diceroll](#diceroll) |
+| `AIDraft` | AI DM Assistant | DM-generated or imported draft (NPC/loot/quest/recap) pending review; human-in-the-loop always | [#aidraft](#aidraft) |
 
 > **Ownership rule:** the *owner module* is responsible for that table's shape. Other modules **reference** it (FK) and may **add** columns via additive migration with a note here — they do not redesign it.
 
@@ -331,8 +332,23 @@ Indexes: `[campaignId]` · `[campaignId, createdAt]` (recent feed). Back-relatio
 ---
 
 ## AI provenance (additive, Sprint 7)
-When the AI Assistant lands, add to **generatable** entities (`Character`/NPC, `Item`, `Monster`, `Quest`) via one additive migration:
-- `is_ai_draft` (boolean, default false) — the row is a DM-approval-pending draft, not live state.
-- `generated_by` (`null` | `"ollama:<model>"` | `"claude"` | `"import"`) — provenance.
+Sprint 7 introduces a dedicated `AIDraft` staging table (see below) instead of adding `is_ai_draft` columns to existing tables. This keeps live entities clean — no draft rows pollute the NPC/Quest tables; approval creates the real entity.
 
-AI output lands as a **draft** the DM approves before it becomes live game state. This is a textbook additive change to already-built tables — no rewrite.
+### AIDraft
+Owner: AI DM Assistant. **Finalized (Sprint 7, migration `ai_dm`).**
+
+| Column | Type | Constraints |
+|--------|------|-------------|
+| `id` | String | PK, cuid |
+| `campaignId` | String | FK → Campaign (cascade delete) |
+| `entityType` | String | `npc` \| `loot` \| `quest` \| `session_recap` |
+| `prompt` | String | DM's original prompt (max 2 000 chars) |
+| `rawText` | String | full LLM or imported text |
+| `parsedJson` | String? | nullable JSON string of structured draft |
+| `provider` | String | `ollama` \| `import` |
+| `status` | String | `pending` \| `approved` \| `rejected`, default `pending` |
+| `approvedEntityId` | String? | nullable ID of the entity created on approval |
+| `approvedEntityType` | String? | nullable mirrors `entityType` for the approved entity |
+| `createdAt` | DateTime | `@default(now())` |
+
+Indexes: `[campaignId, status]` · `[campaignId, createdAt]`. Back-relation `aiDrafts AIDraft[]` added to `Campaign` (Prisma-level only, no SQL change to Campaign). Migration `ai_dm` = `CREATE TABLE AIDraft` only — zero DROP/ALTER on any prior table.

@@ -27,6 +27,7 @@ model Campaign {
   npcs           Npc[] // Sprint 5 — back-relation
   journalEntries JournalEntry[] // Sprint 5 — back-relation
   diceRolls      DiceRoll[] // Sprint 6 — back-relation (no new column)
+  aiDrafts       AIDraft[] // Sprint 7 — back-relation (no new column)
 
   @@index([inviteCode])
 }
@@ -473,5 +474,32 @@ model DiceRoll {
   playerSession PlayerSession @relation(fields: [playerSessionId], references: [id], onDelete: Cascade)
 
   @@index([campaignId])
+  @@index([campaignId, createdAt])
+}
+
+// ── AI DM Assistant (Sprint 7) ──────────────────────────────────────
+// Staging table for DM-generated or imported drafts (NPC/loot/quest/recap).
+// Human-in-the-loop: a draft is NEVER live state — the DM reviews/edits then
+// approves (creates a real entity in the Story repo) or rejects. Nothing
+// auto-applies. LLM writes prose only; rules math is deterministic code.
+// parsedJson = nullable JSON string (mirrors currencyJson convention). Reject =
+// status flip (soft delete), no hard delete. Migration: ai_dm (CREATE TABLE only;
+// no DROP/ALTER on existing tables). See docs/modules/ai-dm/SA_BLUEPRINT.md §2.
+
+model AIDraft {
+  id                 String   @id @default(cuid())
+  campaignId         String
+  campaign           Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  entityType         String // "npc" | "loot" | "quest" | "session_recap"
+  prompt             String // original DM prompt (max 2000 chars, app-validated)
+  rawText            String // full LLM/import text
+  parsedJson         String? // nullable JSON string of structured draft (null = unparseable)
+  provider           String // "ollama" | "import"
+  status             String   @default("pending") // "pending" | "approved" | "rejected"
+  approvedEntityId   String? // ID of the entity created on approval
+  approvedEntityType String? // mirrors entityType for the approved entity
+  createdAt          DateTime @default(now())
+
+  @@index([campaignId, status])
   @@index([campaignId, createdAt])
 }
