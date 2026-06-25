@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AI DM Assistant — Sprint 7 Mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<style>
+:root {
+  --bg: #0B0E14;
+  --surface: #151A23;
+  --surface-raised: #1E2530;
+  --border: #2A323F;
+  --text: #F1F5F9;
+  --text-muted: #94A3B8;
+  --text-faint: #64748B;
+  --accent: #D9A441;
+  --accent-hover: #E8B95C;
+  --arcane: #8B5CF6;
+  --danger: #EF4444;
+  --success: #22C55E;
+  --warning: #F59E0B;
+  --r-sm: 6px;
+  --r-md: 10px;
+  --r-lg: 16px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; font-size: 16px; line-height: 1.5; min-height: 100vh; }
+
+/* Layout */
+.app { display: flex; flex-direction: column; min-height: 100vh; }
+.topbar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; }
+.topbar h1 { font-family: 'Cinzel', serif; font-size: 20px; color: var(--accent); letter-spacing: .05em; }
+.role-toggle { display: flex; gap: 8px; }
+.role-btn { padding: 6px 14px; border-radius: var(--r-sm); border: 1px solid var(--border); background: transparent; color: var(--text-muted); font-family: 'Inter', sans-serif; font-size: 13px; cursor: pointer; transition: .15s; }
+.role-btn.active { background: var(--accent); color: var(--bg); border-color: var(--accent); font-weight: 600; }
+
+.main { display: flex; flex: 1; }
+.sidebar { width: 220px; background: var(--surface); border-right: 1px solid var(--border); padding: 16px 0; flex-shrink: 0; }
+.sidebar-item { padding: 10px 20px; font-size: 14px; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; gap: 10px; transition: .12s; border-left: 3px solid transparent; }
+.sidebar-item:hover { color: var(--text); background: var(--surface-raised); }
+.sidebar-item.active { color: var(--accent); border-left-color: var(--accent); background: rgba(217,164,65,.07); }
+.content { flex: 1; padding: 24px; overflow-y: auto; max-width: 900px; }
+
+/* Section header */
+.section-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+.section-header h2 { font-family: 'Cinzel', serif; font-size: 22px; color: var(--accent); }
+
+/* Provider status banner */
+.provider-banner { display: flex; align-items: flex-start; gap: 12px; background: rgba(245,158,11,.08); border-left: 4px solid var(--warning); border-radius: var(--r-sm); padding: 12px 16px; margin-bottom: 20px; font-size: 14px; }
+.provider-banner.hidden { display: none; }
+.provider-banner-text { flex: 1; color: var(--text); }
+.provider-banner-text span { color: var(--text-muted); }
+.provider-banner-link { color: var(--accent); text-decoration: underline; cursor: pointer; margin-left: 4px; }
+
+/* Tabs */
+.tabs { display: flex; gap: 4px; background: var(--surface-raised); border-radius: var(--r-md); padding: 4px; margin-bottom: 20px; }
+.tab { flex: 1; text-align: center; padding: 8px 12px; border-radius: 7px; font-size: 13px; font-weight: 500; cursor: pointer; color: var(--text-muted); border: none; background: transparent; transition: .15s; }
+.tab.active { background: var(--surface); color: var(--text); box-shadow: 0 1px 4px rgba(0,0,0,.4); }
+
+/* Form */
+.form-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 20px; margin-bottom: 20px; }
+.form-row { margin-bottom: 14px; }
+.form-label { font-size: 13px; font-weight: 500; color: var(--text-muted); margin-bottom: 6px; display: block; }
+textarea, input[type="text"], input[type="number"], select {
+  width: 100%; background: var(--surface-raised); border: 1px solid var(--border); border-radius: var(--r-sm);
+  color: var(--text); font-family: 'Inter', sans-serif; font-size: 14px; padding: 10px 12px;
+  transition: border .15s; resize: vertical; outline: none;
+}
+textarea:focus, input:focus, select:focus { border-color: var(--accent); }
+textarea { min-height: 90px; }
+input[type="number"] { font-family: 'JetBrains Mono', monospace; }
+.char-count { font-size: 12px; color: var(--text-faint); text-align: right; margin-top: 4px; }
+.char-count.warn { color: var(--warning); }
+
+.form-row-inline { display: flex; gap: 12px; align-items: flex-end; }
+.form-row-inline .form-row { flex: 1; margin-bottom: 0; }
+
+/* Buttons */
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 18px; border-radius: var(--r-sm); font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; border: none; transition: .15s; }
+.btn-primary { background: var(--accent); color: var(--bg); }
+.btn-primary:hover { background: var(--accent-hover); }
+.btn-primary:disabled { opacity: .4; cursor: not-allowed; }
+.btn-secondary { background: transparent; border: 1px solid var(--border); color: var(--text-muted); }
+.btn-secondary:hover { border-color: var(--text-muted); color: var(--text); }
+.btn-danger { background: transparent; border: 1px solid var(--danger); color: var(--danger); }
+.btn-danger:hover { background: rgba(239,68,68,.1); }
+.btn-approve { background: transparent; border: 1px solid var(--accent); color: var(--accent); }
+.btn-approve:hover { background: rgba(217,164,65,.1); }
+.btn-sm { padding: 5px 12px; font-size: 13px; }
+
+.form-actions { display: flex; align-items: center; justify-content: space-between; margin-top: 4px; }
+.import-link { font-size: 13px; color: var(--accent); text-decoration: underline; cursor: pointer; background: none; border: none; font-family: 'Inter', sans-serif; }
+
+/* Draft cards */
+.drafts-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.drafts-header h3 { font-size: 15px; font-weight: 600; color: var(--text); }
+.show-rejected-toggle { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-muted); cursor: pointer; }
+.toggle-switch { width: 32px; height: 18px; background: var(--border); border-radius: 9px; position: relative; transition: .2s; }
+.toggle-switch.on { background: var(--arcane); }
+.toggle-switch::after { content: ''; position: absolute; width: 14px; height: 14px; background: #fff; border-radius: 50%; top: 2px; left: 2px; transition: .2s; }
+.toggle-switch.on::after { left: 16px; }
+
+.draft-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 18px; margin-bottom: 12px; transition: .15s; }
+.draft-card.rejected { opacity: .45; }
+.draft-card-meta { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; }
+.badge-npc { background: rgba(139,92,246,.18); color: var(--arcane); }
+.badge-loot { background: rgba(217,164,65,.18); color: var(--accent); }
+.badge-quest { background: rgba(148,163,184,.12); color: var(--text-muted); }
+.badge-recap { background: rgba(34,197,94,.12); color: var(--success); }
+.badge-ollama { background: rgba(139,92,246,.1); color: var(--arcane); }
+.badge-import { background: rgba(100,116,139,.15); color: var(--text-muted); }
+.badge-approved { background: rgba(34,197,94,.15); color: var(--success); }
+.badge-rejected { background: rgba(239,68,68,.1); color: var(--danger); }
+.draft-ts { margin-left: auto; font-size: 12px; color: var(--text-faint); }
+
+.draft-prompt { font-size: 13px; color: var(--text-muted); margin-bottom: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.draft-divider { border: none; border-top: 1px solid var(--border); margin: 10px 0; }
+.draft-preview { font-size: 14px; color: var(--text); line-height: 1.6; }
+.draft-preview strong { color: var(--accent); }
+.draft-preview ul { padding-left: 18px; margin-top: 4px; }
+.draft-preview ul li { margin-bottom: 2px; }
+.draft-show-more { font-size: 12px; color: var(--accent); cursor: pointer; text-decoration: underline; margin-top: 6px; display: inline-block; }
+.draft-parse-warn { font-size: 13px; color: var(--warning); font-style: italic; }
+.draft-actions { display: flex; align-items: center; gap: 8px; margin-top: 14px; }
+
+/* Edit accordion */
+.edit-accordion { margin-top: 10px; }
+.edit-toggle { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-muted); cursor: pointer; background: none; border: none; font-family: 'Inter', sans-serif; }
+.edit-toggle:hover { color: var(--text); }
+.edit-area { display: none; margin-top: 8px; }
+.edit-area.open { display: block; }
+.edit-save-row { display: flex; justify-content: flex-end; margin-top: 6px; }
+.edit-saved { font-size: 12px; color: var(--success); display: none; }
+
+/* Confirm overlay */
+.confirm-inline { display: none; align-items: center; gap: 8px; font-size: 13px; color: var(--text-muted); }
+.confirm-inline.open { display: flex; }
+
+/* Toast */
+#toast-container { position: fixed; bottom: 24px; right: 24px; display: flex; flex-direction: column-reverse; gap: 8px; z-index: 9999; }
+.toast { padding: 12px 18px; border-radius: var(--r-sm); font-size: 14px; font-weight: 500; min-width: 200px; box-shadow: 0 4px 16px rgba(0,0,0,.5); animation: slideIn .2s ease; }
+.toast-success { background: #1a3322; border: 1px solid var(--success); color: var(--success); }
+.toast-error { background: #2d1515; border: 1px solid var(--danger); color: var(--danger); }
+.toast-warn { background: #2d2210; border: 1px solid var(--warning); color: var(--warning); }
+@keyframes slideIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+
+/* Import modal */
+.modal-scrim { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index: 100; align-items: center; justify-content: center; }
+.modal-scrim.open { display: flex; }
+.modal { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 28px; width: 560px; max-width: 95vw; max-height: 85vh; overflow-y: auto; }
+.modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+.modal-header h3 { font-size: 18px; font-weight: 700; }
+.modal-close { background: none; border: none; cursor: pointer; color: var(--text-muted); font-size: 20px; line-height: 1; padding: 2px; }
+.modal-close:hover { color: var(--text); }
+.modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
+
+/* Player-only message */
+.player-message { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 32px; text-align: center; color: var(--text-muted); }
+.player-message h3 { font-size: 16px; margin-bottom: 8px; color: var(--text-faint); }
+
+/* Loading spinner */
+.spinner { width: 16px; height: 16px; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; animation: spin .6s linear infinite; display: inline-block; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Empty state */
+.empty-state { text-align: center; padding: 40px; color: var(--text-muted); }
+.empty-state p { font-size: 14px; }
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- Topbar -->
+  <div class="topbar">
+    <h1>D&D Campaign Manager</h1>
+    <div class="role-toggle">
+      <button class="role-btn active" id="btn-dm" onclick="setRole('dm')">DM View</button>
+      <button class="role-btn" id="btn-player" onclick="setRole('player')">Player View</button>
+    </div>
+  </div>
+
+  <div class="main">
+    <!-- Sidebar -->
+    <nav class="sidebar">
+      <div class="sidebar-item">
+        <i data-lucide="layout-dashboard" style="width:16px;height:16px"></i>
+        Dashboard
+      </div>
+      <div class="sidebar-item">
+        <i data-lucide="sword" style="width:16px;height:16px"></i>
+        Combat
+      </div>
+      <div class="sidebar-item">
+        <i data-lucide="scroll-text" style="width:16px;height:16px"></i>
+        Story
+      </div>
+      <div class="sidebar-item active">
+        <i data-lucide="sparkles" style="width:16px;height:16px"></i>
+        AI Assistant
+      </div>
+    </nav>
+
+    <!-- Content -->
+    <div class="content">
+
+      <!-- DM VIEW -->
+      <div id="dm-view">
+        <div class="section-header">
+          <h2>AI DM Assistant</h2>
+          <span id="ollama-status-pill" class="badge badge-ollama" style="font-size:11px;">● Ollama</span>
+        </div>
+
+        <!-- Provider banner (shown when Ollama down) -->
+        <div class="provider-banner hidden" id="provider-banner">
+          <i data-lucide="alert-triangle" style="width:18px;height:18px;color:var(--warning);flex-shrink:0;margin-top:1px"></i>
+          <div class="provider-banner-text">
+            <strong>Ollama not connected</strong> — AI generation is disabled.
+            <span>Import from Claude / ChatGPT still works.</span>
+            <a class="provider-banner-link">Set up Ollama ↗</a>
+          </div>
+          <button class="btn btn-secondary btn-sm" onclick="simulateOllamaConnect()" style="white-space:nowrap">Simulate connect</button>
+        </div>
+
+        <!-- Entity type tabs -->
+        <div class="tabs" id="entity-tabs">
+          <button class="tab active" onclick="selectEntityType('npc', this)">NPC</button>
+          <button class="tab" onclick="selectEntityType('loot', this)">Loot</button>
+          <button class="tab" onclick="selectEntityType('quest', this)">Quest</button>
+          <button class="tab" onclick="selectEntityType('recap', this)">Session Recap</button>
+        </div>
+
+        <!-- Generate form -->
+        <div class="form-card">
+          <div class="form-row">
+            <label class="form-label" for="prompt-input">Prompt</label>
+            <textarea id="prompt-input" placeholder="e.g. A suspicious tiefling merchant who runs a curiosity shop and knows more than he lets on" oninput="updateCharCount()" maxlength="2000"></textarea>
+            <div class="char-count" id="char-count">0 / 2 000</div>
+          </div>
+
+          <!-- Context: CR input (loot only) -->
+          <div class="form-row" id="ctx-cr" style="display:none;">
+            <label class="form-label" for="cr-input">Encounter CR (for loot tier)</label>
+            <input type="number" id="cr-input" min="0" max="30" placeholder="5" style="max-width:120px" />
+          </div>
+
+          <!-- Context: session selector (recap only) -->
+          <div class="form-row" id="ctx-session" style="display:none;">
+            <label class="form-label" for="session-select">Session</label>
+            <select id="session-select">
+              <option value="">— select session —</option>
+              <option value="s1">Session 3 — The Sunken Temple (2026-06-15)</option>
+              <option value="s2">Session 2 — Arrival at Waterdeep (2026-06-08)</option>
+              <option value="s3">Session 1 — The Road to Adventure (2026-06-01)</option>
+            </select>
+          </div>
+
+          <div class="form-actions">
+            <button class="import-link" onclick="openImportModal()">
+              Or import from Claude / ChatGPT ↗
+            </button>
+            <button class="btn btn-primary" id="generate-btn" onclick="generate()" disabled>
+              <span id="generate-label">Generate NPC</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Drafts list -->
+        <div class="drafts-header">
+          <h3>Pending Drafts</h3>
+          <label class="show-rejected-toggle" onclick="toggleRejected()">
+            <div class="toggle-switch" id="rejected-toggle"></div>
+            Show rejected
+          </label>
+        </div>
+
+        <div id="drafts-list"></div>
+
+      </div><!-- /dm-view -->
+
+      <!-- PLAYER VIEW -->
+      <div id="player-view" style="display:none;">
+        <div class="player-message">
+          <h3>AI DM Assistant</h3>
+          <p>This panel is available to the Dungeon Master only.</p>
+        </div>
+      </div>
+
+    </div><!-- /content -->
+  </div>
+</div>
+
+<!-- Import modal -->
+<div class="modal-scrim" id="import-modal" onclick="handleScrimClick(event)">
+  <div class="modal" role="dialog" aria-modal="true" aria-label="Import from Claude">
+    <div class="modal-header">
+      <h3>Import from Claude / ChatGPT</h3>
+      <button class="modal-close" onclick="closeImportModal()" aria-label="Close">✕</button>
+    </div>
+    <div class="form-row">
+      <label class="form-label">Entity type</label>
+      <div class="tabs" style="margin-bottom:0">
+        <button class="tab active" onclick="selectImportType('npc', this)">NPC</button>
+        <button class="tab" onclick="selectImportType('loot', this)">Loot</button>
+        <button class="tab" onclick="selectImportType('quest', this)">Quest</button>
+        <button class="tab" onclick="selectImportType('recap', this)">Recap</button>
+      </div>
+    </div>
+    <div class="form-row" style="margin-top:14px">
+      <label class="form-label" for="import-textarea">Paste the AI response below:</label>
+      <textarea id="import-textarea" style="min-height:160px;font-family:'JetBrains Mono',monospace;font-size:13px;" placeholder="Paste your Claude or ChatGPT response here..." oninput="updateImportCount()"></textarea>
+      <div class="char-count" id="import-char-count">0 / 10 000</div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeImportModal()">Cancel</button>
+      <button class="btn btn-primary" id="import-parse-btn" onclick="parseImport()" disabled>
+        <span id="import-label">Parse &amp; Save Draft</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast container -->
+<div id="toast-container"></div>
+
+<script>
+/* ---- State ---- */
+var role = 'dm';
+var entityType = 'npc';
+var importEntityType = 'npc';
+var showRejected = false;
+var ollamaAvailable = true;
+
+var drafts = [
+  {
+    id: 'd1',
+    entityType: 'npc',
+    provider: 'ollama',
+    prompt: 'A suspicious tiefling merchant who runs a curiosity shop',
+    rawText: '**Name:** Malachar Voss\n**Appearance:** Lean tiefling with deep violet skin, curling horns filed to points, always wearing fingerless gloves.\n**Personality:** Charming and evasive; answers questions with questions; laughs too easily at unfunny remarks.\n**Secret:** He owes a debt to a devil and collects rare souls to pay it off — one item per customer is cursed without their knowledge.\n**Role:** Fence for the thieves\' guild, occasional informant.',
+    parsedJson: {
+      name: 'Malachar Voss',
+      appearance: 'Lean tiefling with deep violet skin, curling horns filed to points, always wearing fingerless gloves.',
+      personality: 'Charming and evasive; answers questions with questions.',
+      secret: 'Owes a debt to a devil — one item per customer is cursed.',
+      role: "Fence for the thieves' guild, occasional informant."
+    },
+    status: 'pending',
+    createdAt: '2 minutes ago'
+  },
+  {
+    id: 'd2',
+    entityType: 'loot',
+    provider: 'ollama',
+    prompt: 'Loot for a CR 7 aboleth encounter in an underwater cave',
+    rawText: '',
+    parsedJson: {
+      items: [
+        { name: 'Tentacle Whip', flavor: 'A whip of preserved aboleth tendon; still glistens with slime. +1 whip, on hit target makes CON save DC 13 or is poisoned until end of next turn.' },
+        { name: 'Abyssal Pearl', flavor: 'A black pearl the size of a fist, faintly luminous. Worth 500 gp; whispers to those who hold it at night.' },
+        { name: 'Tome of the Deep', flavor: 'Pages of treated sharkskin covered in aboleth script. Deciphering takes 1 week of study and a DC 18 Arcana check; reveals one spell scroll of Dominate Monster.' }
+      ]
+    },
+    status: 'pending',
+    createdAt: '10 minutes ago'
+  },
+  {
+    id: 'd3',
+    entityType: 'quest',
+    provider: 'import',
+    prompt: 'Sea voyage plot hook after dungeon clear',
+    rawText: '**Quest: The Tide-Marked Compass**\n\nA dockmaster approaches the party with a battered compass that always points southeast — into open ocean. Legends say it points to a sunken treasure fleet. The giver has a charter to claim the wreck but lacks a crew.\n\n**Objectives:**\n- Secure a seaworthy vessel\n- Follow the compass across three known hazard zones\n- Dive the wreck and retrieve the captain\'s charter\n\n**Reward hint:** Treasure + a standing line of credit with the Harbor Merchant Guild.',
+    parsedJson: {
+      name: "The Tide-Marked Compass",
+      giver: "A desperate dockmaster",
+      objectives: ["Secure a seaworthy vessel", "Navigate three hazard zones", "Retrieve the captain's charter from the wreck"],
+      rewardHint: "Treasure + Merchant Guild credit"
+    },
+    status: 'pending',
+    createdAt: '1 hour ago'
+  },
+  {
+    id: 'd4',
+    entityType: 'recap',
+    provider: 'ollama',
+    prompt: 'Dramatic opening recap for next session',
+    rawText: 'Last time, brave adventurers — you descended into the Sunken Temple and faced the aboleth that had plagued the coastal villages for a generation. Its psychic screams shook the very foundations of the deep. In the end, blade and spell prevailed, and you surfaced clutching a battered compass that spins with purpose...',
+    parsedJson: null,
+    status: 'rejected',
+    createdAt: '2 hours ago'
+  }
+];
+
+/* ---- Role toggle ---- */
+function setRole(r) {
+  role = r;
+  document.getElementById('btn-dm').classList.toggle('active', r === 'dm');
+  document.getElementById('btn-player').classList.toggle('active', r === 'player');
+  document.getElementById('dm-view').style.display = r === 'dm' ? 'block' : 'none';
+  document.getElementById('player-view').style.display = r === 'player' ? 'block' : 'none';
+}
+
+/* ---- Entity type tabs ---- */
+function selectEntityType(type, btn) {
+  entityType = type;
+  document.querySelectorAll('#entity-tabs .tab').forEach(function(t) { t.classList.remove('active'); });
+  btn.classList.add('active');
+  document.getElementById('ctx-cr').style.display = type === 'loot' ? 'block' : 'none';
+  document.getElementById('ctx-session').style.display = type === 'recap' ? 'block' : 'none';
+  var labels = { npc: 'Generate NPC', loot: 'Generate Loot', quest: 'Generate Quest', recap: 'Generate Recap' };
+  document.getElementById('generate-label').textContent = labels[type];
+  checkGenerateBtn();
+}
+
+/* ---- Char count ---- */
+function updateCharCount() {
+  var v = document.getElementById('prompt-input').value;
+  var el = document.getElementById('char-count');
+  el.textContent = v.length + ' / 2 000';
+  el.classList.toggle('warn', v.length > 1800);
+  checkGenerateBtn();
+}
+function checkGenerateBtn() {
+  var prompt = document.getElementById('prompt-input').value.trim();
+  document.getElementById('generate-btn').disabled = !prompt || !ollamaAvailable;
+}
+
+/* ---- Ollama simulation ---- */
+function simulateOllamaConnect() {
+  ollamaAvailable = true;
+  document.getElementById('provider-banner').classList.add('hidden');
+  document.getElementById('ollama-status-pill').textContent = '● Ollama';
+  document.getElementById('ollama-status-pill').style.backgroundColor = 'rgba(139,92,246,.18)';
+  document.getElementById('ollama-status-pill').style.color = 'var(--arcane)';
+  checkGenerateBtn();
+  showToast('Ollama connected successfully', 'success');
+}
+function simulateOllamaDown() {
+  ollamaAvailable = false;
+  document.getElementById('provider-banner').classList.remove('hidden');
+  document.getElementById('ollama-status-pill').textContent = '● Ollama offline';
+  document.getElementById('ollama-status-pill').style.backgroundColor = 'rgba(245,158,11,.1)';
+  document.getElementById('ollama-status-pill').style.color = 'var(--warning)';
+  checkGenerateBtn();
+}
+document.getElementById('ollama-status-pill').addEventListener('click', function() {
+  if (ollamaAvailable) simulateOllamaDown(); else simulateOllamaConnect();
+});
+document.getElementById('ollama-status-pill').title = 'Click to toggle Ollama availability';
+document.getElementById('ollama-status-pill').style.cursor = 'pointer';
+
+/* ---- Generate ---- */
+function generate() {
+  var prompt = document.getElementById('prompt-input').value.trim();
+  if (!prompt) return;
+  var btn = document.getElementById('generate-btn');
+  var label = document.getElementById('generate-label');
+  btn.disabled = true;
+  label.innerHTML = '<span class="spinner"></span> Generating…';
+  setTimeout(function() {
+    label.textContent = { npc:'Generate NPC', loot:'Generate Loot', quest:'Generate Quest', recap:'Generate Recap' }[entityType];
+    btn.disabled = false;
+    var newDraft = buildFakeDraft(entityType, prompt);
+    drafts.unshift(newDraft);
+    renderDrafts();
+    document.getElementById('prompt-input').value = '';
+    document.getElementById('char-count').textContent = '0 / 2 000';
+    showToast('Draft generated successfully', 'success');
+  }, 1800);
+}
+
+function buildFakeDraft(type, prompt) {
+  var id = 'd' + Date.now();
+  var fakes = {
+    npc: {
+      rawText: '**Name:** Sylara Nightveil\n**Appearance:** A half-elf woman with silver-streaked hair and mismatched eyes — one amber, one grey.\n**Personality:** Measured and watchful; she trusts slowly but absolutely.\n**Secret:** She is a former assassin who staged her own death three years ago.\n**Role:** Runs a cartographer\'s shop as cover for an intelligence network.',
+      parsedJson: { name:'Sylara Nightveil', appearance:'Half-elf, silver-streaked hair, mismatched eyes.', personality:'Measured and watchful; trusts slowly.', secret:'Former assassin — staged her own death.', role:'Cartographer / spy network handler.' }
+    },
+    loot: {
+      rawText: '',
+      parsedJson: { items: [{ name:'Shadow Cloak', flavor:'Woven from nightshade silk; advantage on Stealth in dim light.' }, { name:'Glyph-Etched Dagger', flavor:'+1 dagger; deals an extra 1d4 psychic damage on the first hit each encounter.' }] }
+    },
+    quest: {
+      rawText: '**Quest: Whispers in the Archive**\nA scholar was found dead in the Grand Archive, pages of his manuscript torn out.\n**Objectives:** Investigate the death, recover the missing pages, identify who is suppressing the information.',
+      parsedJson: { name:'Whispers in the Archive', giver:'The Archive\'s head librarian', objectives:['Investigate the scholar\'s death','Recover the missing manuscript pages','Identify the conspirators'], rewardHint:'Access to restricted Archive stacks + 300 gp' }
+    },
+    recap: {
+      rawText: 'Welcome back, adventurers. When we last met, you stood at the gates of the Sunken Temple, water still dripping from your armour, a trove of secrets in your hands and a horizon full of questions...',
+      parsedJson: null
+    }
+  };
+  return { id:id, entityType:type, provider:'ollama', prompt:prompt, rawText: fakes[type].rawText, parsedJson: fakes[type].parsedJson, status:'pending', createdAt:'just now' };
+}
+
+/* ---- Render drafts ---- */
+function renderDrafts() {
+  var list = document.getElementById('drafts-list');
+  var visible = drafts.filter(function(d) { return showRejected ? true : d.status !== 'rejected'; });
+  if (visible.length === 0) {
+    list.innerHTML = '<div class="empty-state"><p>No drafts yet. Generate one above or import from Claude / ChatGPT.</p></div>';
+    return;
+  }
+  list.innerHTML = visible.map(function(d) { return renderDraftCard(d); }).join('');
+}
+
+function renderDraftCard(d) {
+  var typeBadge = { npc:'badge-npc', loot:'badge-loot', quest:'badge-quest', recap:'badge-recap' }[d.entityType] || 'badge-quest';
+  var typeLabel = { npc:'NPC', loot:'Loot', quest:'Quest', recap:'Recap' }[d.entityType];
+  var provBadge = d.provider === 'ollama' ? 'badge-ollama' : 'badge-import';
+  var provLabel = d.provider === 'ollama' ? 'Ollama' : 'Import';
+  var preview = renderPreview(d);
+  var editArea = d.status === 'pending' ? (
+    '<div class="edit-accordion">' +
+    '<button class="edit-toggle" onclick="toggleEdit(\'' + d.id + '\')">' +
+    '<i data-lucide="chevron-down" style="width:14px;height:14px"></i> Edit raw text' +
+    '</button>' +
+    '<div class="edit-area" id="edit-' + d.id + '">' +
+    '<textarea style="min-height:100px;font-family:JetBrains Mono,monospace;font-size:13px;" id="edit-ta-' + d.id + '">' + escHtml(d.rawText) + '</textarea>' +
+    '<div class="edit-save-row">' +
+    '<span class="edit-saved" id="edit-saved-' + d.id + '">✓ Saved</span>' +
+    '<button class="btn btn-secondary btn-sm" onclick="saveEdit(\'' + d.id + '\')">Save edits</button>' +
+    '</div></div></div>'
+  ) : '';
+  var actions = '';
+  if (d.status === 'pending') {
+    actions = '<div class="draft-actions">' + editArea +
+      '<div style="display:flex;gap:8px;margin-left:auto;align-items:center">' +
+      '<div class="confirm-inline" id="confirm-' + d.id + '">' +
+      '<span>Are you sure?</span>' +
+      '<button class="btn btn-danger btn-sm" onclick="doReject(\'' + d.id + '\')">Reject</button>' +
+      '<button class="btn btn-secondary btn-sm" onclick="cancelReject(\'' + d.id + '\')">Cancel</button>' +
+      '</div>' +
+      '<button class="btn btn-danger btn-sm" id="reject-btn-' + d.id + '" onclick="confirmReject(\'' + d.id + '\')">Reject</button>' +
+      '<button class="btn btn-approve btn-sm" onclick="approveDraft(\'' + d.id + '\')"><span id="approve-label-' + d.id + '">✓ Approve</span></button>' +
+      '</div></div>';
+  } else if (d.status === 'approved') {
+    actions = '<div class="draft-actions"><span class="badge badge-approved" style="margin-left:auto">✓ Approved</span></div>';
+  } else {
+    actions = '<div class="draft-actions"><span class="badge badge-rejected" style="margin-left:auto">Rejected</span></div>';
+  }
+  return '<div class="draft-card' + (d.status === 'rejected' ? ' rejected' : '') + '" id="card-' + d.id + '">' +
+    '<div class="draft-card-meta">' +
+    '<span class="badge ' + typeBadge + '">' + typeLabel + '</span>' +
+    '<span class="badge ' + provBadge + '">' + provLabel + '</span>' +
+    (d.status !== 'pending' ? '<span class="badge ' + (d.status === 'approved' ? 'badge-approved' : 'badge-rejected') + '">' + d.status + '</span>' : '') +
+    '<span class="draft-ts">' + d.createdAt + '</span>' +
+    '</div>' +
+    '<div class="draft-prompt">Prompt: ' + escHtml(d.prompt) + '</div>' +
+    '<hr class="draft-divider" />' +
+    '<div class="draft-preview">' + preview + '</div>' +
+    actions +
+    '</div>';
+}
+
+function renderPreview(d) {
+  if (!d.parsedJson) {
+    if (d.rawText) {
+      return '<p class="draft-parse-warn">⚠ Could not parse as structured data — edit raw text manually.</p>' +
+        '<p style="font-size:13px;color:var(--text-muted);margin-top:6px">' + escHtml(d.rawText.substring(0, 200)) + (d.rawText.length > 200 ? '…' : '') + '</p>';
+    }
+    return '<p class="draft-parse-warn">No content available.</p>';
+  }
+  if (d.entityType === 'npc' && d.parsedJson) {
+    var p = d.parsedJson;
+    return '<p><strong>' + escHtml(p.name || '') + '</strong></p>' +
+      '<p style="font-size:13px;color:var(--text-muted);margin-top:4px">' + escHtml(p.appearance || '') + '</p>' +
+      '<p style="font-size:13px;margin-top:4px"><em>Personality:</em> ' + escHtml(p.personality || '') + '</p>' +
+      '<span class="draft-show-more" onclick="toggleSecret(\'' + d.id + '\')">Show secret ▾</span>' +
+      '<p style="font-size:13px;display:none;margin-top:4px;color:var(--danger)" id="secret-' + d.id + '"><em>Secret:</em> ' + escHtml(p.secret || '') + '</p>';
+  }
+  if (d.entityType === 'loot' && d.parsedJson && d.parsedJson.items) {
+    return '<ul>' + d.parsedJson.items.map(function(item) {
+      return '<li style="font-size:13px;margin-bottom:6px"><strong>' + escHtml(item.name) + '</strong> — <span style="color:var(--text-muted)">' + escHtml(item.flavor) + '</span></li>';
+    }).join('') + '</ul>';
+  }
+  if (d.entityType === 'quest' && d.parsedJson) {
+    var q = d.parsedJson;
+    return '<p><strong>' + escHtml(q.name || '') + '</strong></p>' +
+      '<p style="font-size:13px;color:var(--text-muted);margin-top:4px">Giver: ' + escHtml(q.giver || '') + '</p>' +
+      '<ul style="margin-top:6px">' + (q.objectives || []).slice(0,3).map(function(o) {
+        return '<li style="font-size:13px;color:var(--text-muted)">' + escHtml(o) + '</li>';
+      }).join('') + '</ul>';
+  }
+  if (d.entityType === 'recap') {
+    return '<p style="font-size:13px;color:var(--text-muted);font-style:italic">' + escHtml((d.rawText || '').substring(0, 250)) + '…</p>';
+  }
+  return '<p style="font-size:13px;color:var(--text-muted)">' + JSON.stringify(d.parsedJson).substring(0,200) + '</p>';
+}
+
+function toggleSecret(id) {
+  var el = document.getElementById('secret-' + id);
+  if (!el) return;
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+/* ---- Approve / Reject ---- */
+function confirmReject(id) {
+  document.getElementById('confirm-' + id).classList.add('open');
+  document.getElementById('reject-btn-' + id).style.display = 'none';
+}
+function cancelReject(id) {
+  document.getElementById('confirm-' + id).classList.remove('open');
+  document.getElementById('reject-btn-' + id).style.display = '';
+}
+function doReject(id) {
+  var d = drafts.find(function(x) { return x.id === id; });
+  if (d) d.status = 'rejected';
+  renderDrafts();
+  lucide.createIcons();
+  showToast('Draft rejected', 'warn');
+}
+function approveDraft(id) {
+  var d = drafts.find(function(x) { return x.id === id; });
+  if (!d) return;
+  var lbl = document.getElementById('approve-label-' + id);
+  if (lbl) lbl.innerHTML = '<span class="spinner"></span>';
+  setTimeout(function() {
+    d.status = 'approved';
+    renderDrafts();
+    lucide.createIcons();
+    var msgs = { npc:'NPC added to campaign', loot:'Loot draft approved (displayed to DM)', quest:'Quest created in campaign', recap:'Session recap saved' };
+    showToast(msgs[d.entityType] || 'Draft approved', 'success');
+  }, 900);
+}
+
+/* ---- Edit ---- */
+function toggleEdit(id) {
+  var area = document.getElementById('edit-' + id);
+  if (area) area.classList.toggle('open');
+  lucide.createIcons();
+}
+function saveEdit(id) {
+  var ta = document.getElementById('edit-ta-' + id);
+  var d = drafts.find(function(x) { return x.id === id; });
+  if (d && ta) { d.rawText = ta.value; }
+  var saved = document.getElementById('edit-saved-' + id);
+  if (saved) { saved.style.display = 'inline'; setTimeout(function() { saved.style.display = 'none'; }, 2000); }
+}
+
+/* ---- Show rejected toggle ---- */
+function toggleRejected() {
+  showRejected = !showRejected;
+  document.getElementById('rejected-toggle').classList.toggle('on', showRejected);
+  renderDrafts();
+  lucide.createIcons();
+}
+
+/* ---- Import modal ---- */
+function openImportModal() {
+  document.getElementById('import-modal').classList.add('open');
+}
+function closeImportModal() {
+  document.getElementById('import-modal').classList.remove('open');
+  document.getElementById('import-textarea').value = '';
+  document.getElementById('import-char-count').textContent = '0 / 10 000';
+  document.getElementById('import-parse-btn').disabled = true;
+}
+function handleScrimClick(e) {
+  if (e.target === document.getElementById('import-modal')) closeImportModal();
+}
+document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeImportModal(); });
+
+function selectImportType(type, btn) {
+  importEntityType = type;
+  document.querySelectorAll('#import-modal .tabs .tab').forEach(function(t) { t.classList.remove('active'); });
+  btn.classList.add('active');
+}
+function updateImportCount() {
+  var v = document.getElementById('import-textarea').value;
+  var el = document.getElementById('import-char-count');
+  el.textContent = v.length + ' / 10 000';
+  el.classList.toggle('warn', v.length > 9000);
+  document.getElementById('import-parse-btn').disabled = !v.trim();
+}
+function parseImport() {
+  var content = document.getElementById('import-textarea').value.trim();
+  if (!content) return;
+  var lbl = document.getElementById('import-label');
+  document.getElementById('import-parse-btn').disabled = true;
+  lbl.innerHTML = '<span class="spinner"></span> Parsing…';
+  setTimeout(function() {
+    lbl.textContent = 'Parse & Save Draft';
+    document.getElementById('import-parse-btn').disabled = false;
+    var newDraft = {
+      id: 'd' + Date.now(),
+      entityType: importEntityType,
+      provider: 'import',
+      prompt: '(imported from paste)',
+      rawText: content,
+      parsedJson: tryParseImport(importEntityType, content),
+      status: 'pending',
+      createdAt: 'just now'
+    };
+    drafts.unshift(newDraft);
+    closeImportModal();
+    renderDrafts();
+    lucide.createIcons();
+    showToast('Import parsed and saved as draft', 'success');
+  }, 700);
+}
+function tryParseImport(type, text) {
+  if (text.startsWith('{')) {
+    try { return JSON.parse(text); } catch(e) {}
+  }
+  if (type === 'npc') {
+    return { name: 'Imported NPC', appearance: text.substring(0, 80), personality: '—', secret: '—', role: '—' };
+  }
+  return null;
+}
+
+/* ---- Toast ---- */
+function showToast(msg, type) {
+  var el = document.createElement('div');
+  el.className = 'toast toast-' + type;
+  el.textContent = msg;
+  document.getElementById('toast-container').appendChild(el);
+  setTimeout(function() { el.remove(); }, 3200);
+}
+
+/* ---- Helpers ---- */
+function escHtml(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+/* ---- Init ---- */
+renderDrafts();
+lucide.createIcons();
+</script>
+</body>
+</html>
