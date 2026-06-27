@@ -17,6 +17,7 @@ import {
   UserMinus,
   Hourglass,
   LayoutDashboard,
+  Download,
 } from "lucide-react";
 import { useCampaign } from "../../providers";
 import { formatInviteCode } from "@/lib/inviteCode";
@@ -142,7 +143,7 @@ export default function LobbyPage() {
               }}
             />
 
-            {isDM && <InviteHero inviteCode={state.inviteCode} toast={toast} />}
+            {isDM && <InviteHero inviteCode={state.inviteCode} campaignId={id} toast={toast} />}
 
             <Roster
               participants={state.participants}
@@ -247,27 +248,54 @@ function CampaignHeader({
 
 function InviteHero({
   inviteCode,
+  campaignId,
   toast,
 }: {
   inviteCode: string;
+  campaignId: string;
   toast: (msg: string, kind?: "success" | "warning" | "danger") => void;
 }) {
-  // Show players the real LAN URL (the server knows its IP); fall back to the
-  // current origin if the host lookup fails.
   const [joinUrl, setJoinUrl] = useState(
     typeof window !== "undefined" ? window.location.origin : "",
   );
+  const [exporting, setExporting] = useState(false);
   useEffect(() => {
     fetch("/api/host")
       .then((r) => r.json())
-      .then((d) => {
-        if (d?.url) setJoinUrl(d.url);
-      })
+      .then((d) => { if (d?.url) setJoinUrl(d.url); })
       .catch(() => {});
   }, []);
   const copy = async (text: string, msg: string) => {
     const ok = await copyText(text);
     toast(ok ? msg : "Couldn't copy — long-press to select it", ok ? "success" : "warning");
+  };
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      const token = (() => {
+        try {
+          const all = JSON.parse(localStorage.getItem("dnd.sessions") ?? "{}") as Record<string, { token: string }>;
+          return all[campaignId]?.token ?? "";
+        } catch { return ""; }
+      })();
+      const res = await fetch(`/api/campaigns/${campaignId}/export`, {
+        headers: { authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) { toast("Export ไม่สำเร็จ", "danger"); return; }
+      const blob = await res.blob();
+      const cd = res.headers.get("content-disposition") ?? "";
+      const match = /filename="([^"]+)"/.exec(cd);
+      const filename = match?.[1] ?? `campaign-${campaignId}.json`;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = filename; a.click();
+      URL.revokeObjectURL(url);
+      toast("Export สำเร็จ — ไฟล์ถูก download แล้ว", "success");
+    } catch {
+      toast("Export ไม่สำเร็จ", "danger");
+    } finally {
+      setExporting(false);
+    }
   };
   return (
     <section className="rounded-lg bg-surface-raised border border-border p-6 text-center">
@@ -290,6 +318,16 @@ function InviteHero({
             <Copy className="w-3.5 h-3.5" />
           </button>
         </span>
+        <span className="text-faint">·</span>
+        <button
+          onClick={handleExport}
+          disabled={exporting}
+          className="inline-flex items-center gap-1 text-muted hover:text-text rounded px-2 py-1 disabled:opacity-50"
+          aria-label="Export campaign backup"
+        >
+          <Download className="w-4 h-4" aria-hidden />
+          {exporting ? "กำลัง export…" : "Export backup"}
+        </button>
       </div>
       <p className="text-faint text-xs mt-2">Players join on this Wi-Fi.</p>
     </section>

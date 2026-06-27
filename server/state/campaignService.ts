@@ -82,8 +82,24 @@ export async function joinCampaign(payload: unknown): Promise<JoinResult> {
   const campaign = ws.findCampaignByInviteCode(code);
   if (!campaign) return fail("BAD_CODE", "No campaign found for that code.");
   if (campaign.status !== "active") return fail("CAMPAIGN_CLOSED", "This campaign has ended.");
-  if (ws.isNameTaken(campaign.campaignId, parsed.data.displayName)) {
-    return fail("DUPLICATE_NAME", "That name's taken in this campaign — pick another.");
+
+  // Rejoin-by-name: a returning player who joins with the same display name
+  // reconnects to their EXISTING session — and thus their already-claimed
+  // character — instead of being blocked or stranded with a fresh session.
+  // (LAN trust model: the invite code is the shared secret; the name is identity.)
+  // The DM is exempt — its name stays reserved so no player can assume DM rights.
+  const existing = ws.findParticipantByName(campaign.campaignId, parsed.data.displayName);
+  if (existing) {
+    if (existing.role === "dm") {
+      return fail("DUPLICATE_NAME", "That name's taken in this campaign — pick another.");
+    }
+    return {
+      ok: true,
+      token: existing.sessionToken,
+      campaignId: campaign.campaignId,
+      sessionId: existing.sessionId,
+      state: ws.getStateView(campaign.campaignId)!,
+    };
   }
 
   const sessionId = randomUUID();

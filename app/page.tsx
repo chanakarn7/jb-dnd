@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Crown, Users } from "lucide-react";
+import { Crown, Users, Upload } from "lucide-react";
 
 export default function Home() {
   return (
@@ -27,6 +27,15 @@ export default function Home() {
             <Users className="w-7 h-7 text-arcane" aria-hidden />
             <span className="block mt-3 text-lg font-semibold">Join Campaign</span>
             <span className="text-muted text-sm">I&apos;m a Player</span>
+          </Link>
+        </div>
+        <div>
+          <Link
+            href="/import"
+            className="inline-flex items-center gap-2 text-sm text-faint hover:text-muted transition border border-border rounded-md px-4 py-2 hover:bg-surface"
+          >
+            <Upload className="w-4 h-4" aria-hidden />
+            Restore from backup
           </Link>
         </div>
         <p className="text-faint text-xs">Sprint 0 · Foundation</p>

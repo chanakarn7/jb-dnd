@@ -82,6 +82,22 @@ export function isNameTaken(campaignId: string, displayName: string): boolean {
   return false;
 }
 
+// Look up a participant by (case-insensitive) display name. Used by rejoin-by-name
+// so a returning player reconnects to their existing session — and thus their
+// already-claimed character — instead of being blocked as a duplicate.
+export function findParticipantByName(
+  campaignId: string,
+  displayName: string,
+): ParticipantRuntime | undefined {
+  const c = campaigns.get(campaignId);
+  if (!c) return undefined;
+  const lower = displayName.trim().toLowerCase();
+  for (const p of c.participants.values()) {
+    if (p.displayName.toLowerCase() === lower) return p;
+  }
+  return undefined;
+}
+
 // ---------- participant mutations ----------
 
 export function addParticipant(

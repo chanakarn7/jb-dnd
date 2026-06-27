@@ -77,6 +77,28 @@ describe("campaignService.joinCampaign", () => {
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.code).toBe("CAMPAIGN_CLOSED");
   });
+
+  it("rejoin-by-name: a returning player reconnects to the same session/token (case-insensitive)", async () => {
+    const dm = await createMara();
+    const first = await service.joinCampaign({ inviteCode: dm.state.inviteCode, displayName: "Thorin" });
+    if (!first.ok) throw new Error("first join failed");
+
+    // Same name (different case) joins again — must reconnect, not create a 2nd seat.
+    const again = await service.joinCampaign({ inviteCode: dm.state.inviteCode, displayName: "thorin" });
+    expect(again.ok).toBe(true);
+    if (again.ok) {
+      expect(again.sessionId).toBe(first.sessionId); // same identity → reclaims their character
+      expect(again.token).toBe(first.token); // same token
+      expect(again.state.participants).toHaveLength(2); // DM + Thorin, no duplicate
+    }
+  });
+
+  it("rejoin-by-name does NOT let a player assume the DM's name/role", async () => {
+    const dm = await createMara(); // DM is "Mara"
+    const r = await service.joinCampaign({ inviteCode: dm.state.inviteCode, displayName: "Mara" });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.code).toBe("DUPLICATE_NAME");
+  });
 });
 
 describe("campaignService authorization (server-side)", () => {

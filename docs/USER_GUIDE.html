@@ -1,0 +1,1505 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>คู่มือการใช้งาน — D&amp;D Campaign Manager</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Sarabun:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:             #0B0E14;
+    --surface:        #151A23;
+    --surface-raised: #1E2530;
+    --border:         #2A323F;
+    --text:           #F1F5F9;
+    --muted:          #94A3B8;
+    --faint:          #64748B;
+    --accent:         #D9A441;
+    --accent-hover:   #E8B95C;
+    --arcane:         #8B5CF6;
+    --danger:         #EF4444;
+    --success:        #22C55E;
+    --warning:        #F59E0B;
+    --r-sm: 6px;
+    --r-md: 10px;
+    --r-lg: 16px;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Sarabun', 'Inter', sans-serif;
+    font-size: 16px;
+    line-height: 1.7;
+    display: flex;
+    min-height: 100vh;
+  }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    width: 260px;
+    flex-shrink: 0;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+    padding: 24px 0 40px;
+  }
+
+  .sidebar-logo {
+    padding: 0 20px 20px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 12px;
+  }
+  .sidebar-logo span {
+    display: block;
+    font-family: 'Cinzel', serif;
+    font-size: 14px;
+    color: var(--accent);
+    letter-spacing: .06em;
+    line-height: 1.4;
+  }
+  .sidebar-logo small {
+    font-size: 11px;
+    color: var(--faint);
+    letter-spacing: .03em;
+  }
+
+  .sidebar nav { padding: 0 8px; }
+
+  .nav-section {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--faint);
+    padding: 12px 12px 4px;
+  }
+
+  .nav-link {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 12px;
+    border-radius: var(--r-sm);
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 13.5px;
+    transition: background .15s, color .15s;
+  }
+  .nav-link:hover { background: var(--surface-raised); color: var(--text); }
+  .nav-link .icon { font-size: 15px; opacity: .8; }
+  .nav-link.active { color: var(--accent); background: rgba(217,164,65,.1); }
+
+  /* ── Main ── */
+  .main {
+    flex: 1;
+    max-width: 860px;
+    padding: 48px 56px 96px;
+    overflow-y: auto;
+  }
+
+  /* ── Section ── */
+  .section { margin-bottom: 72px; }
+
+  .section-header {
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 16px;
+    margin-bottom: 32px;
+  }
+  .section-badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    padding: 3px 10px;
+    border-radius: 100px;
+    margin-bottom: 8px;
+  }
+  .badge-dm    { background: rgba(217,164,65,.15); color: var(--accent); }
+  .badge-player { background: rgba(139,92,246,.15); color: var(--arcane); }
+  .badge-both  { background: rgba(241,245,249,.08); color: var(--muted); }
+  .badge-ai    { background: rgba(139,92,246,.2);  color: #A78BFA; }
+
+  .section-title {
+    font-family: 'Cinzel', serif;
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: .04em;
+    line-height: 1.3;
+  }
+  .section-sub {
+    color: var(--muted);
+    margin-top: 6px;
+    font-size: 15px;
+  }
+
+  h2 {
+    font-family: 'Inter', sans-serif;
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--text);
+    margin: 32px 0 12px;
+    padding-left: 12px;
+    border-left: 3px solid var(--accent);
+  }
+
+  h3 {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--muted);
+    margin: 24px 0 8px;
+    text-transform: uppercase;
+    letter-spacing: .07em;
+    font-size: 12px;
+  }
+
+  p { margin-bottom: 12px; color: var(--text); }
+  p:last-child { margin-bottom: 0; }
+
+  strong { color: var(--accent); font-weight: 600; }
+  em { color: var(--arcane); font-style: normal; font-weight: 500; }
+  code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    background: var(--surface-raised);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 6px;
+    color: #A5B4FC;
+  }
+
+  /* ── Steps ── */
+  .steps { margin: 20px 0; }
+  .step {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  .step-num {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: rgba(217,164,65,.15);
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    font-weight: 600;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 2px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .step-body { flex: 1; }
+  .step-title { font-weight: 600; margin-bottom: 2px; }
+  .step-desc { color: var(--muted); font-size: 14px; }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    padding: 20px 24px;
+    margin: 16px 0;
+  }
+  .card-title {
+    font-weight: 600;
+    font-size: 15px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* ── Grid ── */
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin: 16px 0;
+  }
+  @media (max-width: 680px) { .grid-2 { grid-template-columns: 1fr; } }
+
+  .grid-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin: 16px 0;
+  }
+  @media (max-width: 680px) { .grid-3 { grid-template-columns: 1fr 1fr; } }
+
+  /* ── Tip / Warning ── */
+  .tip, .warn, .info, .danger-box {
+    border-radius: var(--r-md);
+    padding: 14px 18px;
+    margin: 20px 0;
+    font-size: 14px;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+  .tip    { background: rgba(34,197,94,.08);  border: 1px solid rgba(34,197,94,.25);  color: #86EFAC; }
+  .warn   { background: rgba(245,158,11,.08); border: 1px solid rgba(245,158,11,.25); color: #FCD34D; }
+  .info   { background: rgba(139,92,246,.08); border: 1px solid rgba(139,92,246,.25); color: #C4B5FD; }
+  .danger-box { background: rgba(239,68,68,.08); border: 1px solid rgba(239,68,68,.25); color: #FCA5A5; }
+  .tip .icon, .warn .icon, .info .icon, .danger-box .icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+  .tip p, .warn p, .info p, .danger-box p { color: inherit; margin: 0; }
+
+  /* ── Table ── */
+  .tbl-wrap { overflow-x: auto; margin: 16px 0; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+  thead tr { border-bottom: 1px solid var(--border); }
+  th {
+    text-align: left;
+    padding: 10px 14px;
+    color: var(--muted);
+    font-weight: 600;
+    font-size: 12px;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+  }
+  td { padding: 10px 14px; border-bottom: 1px solid rgba(42,50,63,.5); color: var(--text); }
+  tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: rgba(30,37,48,.6); }
+
+  /* ── Role badge inline ── */
+  .role {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    padding: 2px 7px;
+    border-radius: 100px;
+    vertical-align: middle;
+    margin-left: 4px;
+  }
+  .role-dm     { background: rgba(217,164,65,.2); color: var(--accent); }
+  .role-player { background: rgba(139,92,246,.2); color: #A78BFA; }
+
+  /* ── Feature pill list ── */
+  .pill-list { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+  .pill {
+    padding: 5px 14px;
+    border-radius: 100px;
+    font-size: 13px;
+    border: 1px solid var(--border);
+    background: var(--surface-raised);
+    color: var(--muted);
+  }
+  .pill.accent { border-color: rgba(217,164,65,.4); color: var(--accent); background: rgba(217,164,65,.07); }
+  .pill.arcane { border-color: rgba(139,92,246,.4); color: #C4B5FD; background: rgba(139,92,246,.07); }
+  .pill.hp     { border-color: rgba(239,68,68,.4);  color: #FCA5A5; background: rgba(239,68,68,.07); }
+  .pill.success{ border-color: rgba(34,197,94,.4);  color: #86EFAC; background: rgba(34,197,94,.07); }
+
+  /* ── Combat stat ── */
+  .stat-row {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin: 16px 0;
+  }
+  .stat-box {
+    background: var(--surface-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    padding: 12px 20px;
+    text-align: center;
+    min-width: 80px;
+  }
+  .stat-val {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 28px;
+    font-weight: 500;
+    line-height: 1;
+    color: var(--text);
+  }
+  .stat-val.hp { color: var(--danger); }
+  .stat-val.ac { color: var(--arcane); }
+  .stat-val.init { color: var(--accent); }
+  .stat-label { font-size: 11px; color: var(--faint); text-transform: uppercase; letter-spacing: .07em; margin-top: 4px; }
+
+  /* ── Condition chips ── */
+  .condition-grid { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+  .condition {
+    padding: 4px 12px;
+    border-radius: 100px;
+    font-size: 12px;
+    font-weight: 500;
+    border: 1px solid rgba(245,158,11,.3);
+    color: var(--warning);
+    background: rgba(245,158,11,.07);
+  }
+
+  /* ── Turn tracker ── */
+  .turn-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    border-radius: var(--r-md);
+    border: 1px solid var(--border);
+    margin-bottom: 6px;
+    background: var(--surface-raised);
+    font-size: 14px;
+  }
+  .turn-row.active {
+    border-color: var(--accent);
+    border-left-width: 4px;
+    background: rgba(217,164,65,.07);
+  }
+  .turn-row.active .turn-name { color: var(--accent); font-weight: 600; }
+  .turn-init { font-family: 'JetBrains Mono', monospace; width: 28px; text-align: center; color: var(--muted); font-size: 13px; }
+  .turn-name { flex: 1; }
+  .turn-hp { font-family: 'JetBrains Mono', monospace; color: var(--danger); font-size: 13px; }
+
+  /* ── AI provider status ── */
+  .provider-banner {
+    background: rgba(139,92,246,.08);
+    border: 1px solid rgba(139,92,246,.3);
+    border-radius: var(--r-md);
+    padding: 14px 18px;
+    margin: 16px 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 14px;
+    color: #C4B5FD;
+  }
+  .provider-online {
+    border-color: rgba(34,197,94,.3);
+    background: rgba(34,197,94,.06);
+    color: #86EFAC;
+  }
+
+  /* ── HR ── */
+  hr { border: none; border-top: 1px solid var(--border); margin: 40px 0; }
+
+  /* ── TOC anchor offset ── */
+  .anchor { display: block; position: relative; top: -80px; visibility: hidden; }
+
+  /* ── Hero ── */
+  .hero {
+    text-align: center;
+    padding: 48px 0 56px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 56px;
+  }
+  .hero-title {
+    font-family: 'Cinzel', serif;
+    font-size: 36px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: .06em;
+    margin-bottom: 12px;
+  }
+  .hero-sub {
+    color: var(--muted);
+    font-size: 16px;
+    max-width: 520px;
+    margin: 0 auto 24px;
+  }
+  .hero-meta {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    font-size: 13px;
+    color: var(--faint);
+  }
+  .hero-meta span { display: flex; align-items: center; gap: 6px; }
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--surface); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--faint); }
+
+  /* ── Print ── */
+  @media print {
+    .sidebar { display: none; }
+    .main { padding: 24px; }
+    .tip,.warn,.info { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════════
+     SIDEBAR
+═════════════════════════════════════════════════ -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <span>D&amp;D Campaign Manager</span>
+    <small>คู่มือการใช้งาน v1.0</small>
+  </div>
+  <nav aria-label="สารบัญ">
+    <div class="nav-section">เริ่มต้น</div>
+    <a class="nav-link" href="#intro">🗺️ ภาพรวมระบบ</a>
+    <a class="nav-link" href="#start">⚡ เริ่มใช้งาน</a>
+
+    <div class="nav-section">ตัวละครและไอเทม</div>
+    <a class="nav-link" href="#characters">📜 ตัวละคร (Character Sheet)</a>
+    <a class="nav-link" href="#inventory">🎒 คลังไอเทม (Inventory)</a>
+
+    <div class="nav-section">เล่นเกม</div>
+    <a class="nav-link" href="#combat">⚔️ การต่อสู้ (Combat)</a>
+    <a class="nav-link" href="#story">📖 เรื่องราว (Story)</a>
+
+    <div class="nav-section">เครื่องมือ DM &amp; ผู้เล่น</div>
+    <a class="nav-link" href="#playerui">🎲 ลูกเต๋าและแดชบอร์ด</a>
+    <a class="nav-link" href="#ai">✦ AI DM Assistant</a>
+
+    <div class="nav-section">บันทึกข้อมูล</div>
+    <a class="nav-link" href="#save">💾 เซฟ · เล่นต่อ · Backup</a>
+
+    <div class="nav-section">ข้อมูลอ้างอิง</div>
+    <a class="nav-link" href="#reference">📚 ข้อมูล 5e SRD</a>
+    <a class="nav-link" href="#roles">🔐 สิทธิ์ DM / Player</a>
+    <a class="nav-link" href="#tips">💡 เคล็ดลับที่โต๊ะ</a>
+  </nav>
+</aside>
+
+<!-- ════════════════════════════════════════════════
+     MAIN CONTENT
+═════════════════════════════════════════════════ -->
+<main class="main">
+
+  <!-- ── HERO ── -->
+  <div class="hero">
+    <h1 class="hero-title">D&amp;D Campaign Manager</h1>
+    <p class="hero-sub">เครื่องมือจัดการแคมเปญ D&amp;D 5e แบบ real-time สำหรับทั้งโต๊ะ — ไม่ต้องสมัครสมาชิก ไม่ต้องอินเทอร์เน็ต ใช้ได้บน LAN เดียวกัน</p>
+    <div class="hero-meta">
+      <span>🖥️ Self-hosted บนเครื่อง DM</span>
+      <span>🌐 ผู้เล่นเข้าผ่าน Browser</span>
+      <span>⚡ Real-time Socket.io</span>
+      <span>🆓 ฟรี ไม่มีค่าใช้จ่าย</span>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════
+       1. INTRO
+  ═══════════════════════════════════════════════ -->
+  <a class="anchor" id="intro"></a>
+  <section class="section">
+    <div class="section-header">
+      <div class="section-badge badge-both">ภาพรวม</div>
+      <h1 class="section-title">ระบบทำอะไรได้บ้าง?</h1>
+      <p class="section-sub">ครอบคลุม gameplay loop ของ D&amp;D 5e ตั้งแต่สร้างแคมเปญจนถึงจบ session</p>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">👑 Dungeon Master (DM)</div>
+        <p style="color:var(--muted); font-size:14px;">สร้างแคมเปญ · จัดการ encounter · ควบคุม combat tracker · บันทึก session/quest/NPC · ใช้ AI ช่วยเขียน</p>
+      </div>
+      <div class="card">
+        <div class="card-title">🧙 Player (ผู้เล่น)</div>
+        <p style="color:var(--muted); font-size:14px;">เข้าร่วมด้วย invite code · สร้างและแก้ตัวละคร 5e · โยนลูกเต๋าแบบ broadcast · ดู HP/slots/conditions ตัวเอง</p>
+      </div>
+    </div>
+
+    <h2>โมดูลทั้งหมดในระบบ</h2>
+    <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>โมดูล</th><th>หน้าที่</th><th>ใช้โดย</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Foundation</strong></td><td>สร้างห้อง · invite code · WebSocket real-time sync</td><td>DM + Player</td></tr>
+        <tr><td><strong>5e Reference</strong></td><td>คลัง spell/item/monster จาก SRD 5.1 (อ่านอย่างเดียว)</td><td>DM + Player</td></tr>
+        <tr><td><strong>Characters</strong></td><td>ชีตตัวละคร 5e เต็มรูปแบบ — auto-fill ตามกฎ</td><td>Player (เจ้าของ) + DM (อ่าน)</td></tr>
+        <tr><td><strong>Inventory</strong></td><td>ไอเทม · attunement · currency</td><td>Player</td></tr>
+        <tr><td><strong>Combat</strong></td><td>initiative · HP · conditions · turn order แบบ live sync</td><td>DM ควบคุม + Player ดู</td></tr>
+        <tr><td><strong>Story</strong></td><td>session log · quest · NPC · journal</td><td>DM</td></tr>
+        <tr><td><strong>Player UI + Dice</strong></td><td>ลูกเต๋า broadcast · quick-view panel · dashboard · search</td><td>DM + Player</td></tr>
+        <tr><td><strong>AI DM Assistant</strong></td><td>สร้าง draft NPC/quest/loot/recap ด้วย AI (DM อนุมัติก่อนใช้)</td><td>DM เท่านั้น</td></tr>
+      </tbody>
+    </table>
+    </div>
+
+    <div class="info">
+      <span class="icon">ℹ️</span>
+      <p>ทุกอย่างทำงานบน <strong>LAN เดียวกัน</strong> เซิร์ฟเวอร์รันบนเครื่อง DM ผู้เล่นเปิด browser ไปที่ <code>http://&lt;ip-ของ-DM&gt;:3000</code> ไม่ต้องอินเทอร์เน็ต ไม่ต้องสมัครสมาชิก</p>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════
+       2. GETTING STARTED
+  ═══════════════════════════════════════════════ -->
+  <a class="anchor" id="start"></a>
+  <section class="section">
+    <div class="section-header">
+      <div class="section-badge badge-both">เริ่มต้น</div>
+      <h1 class="section-title">เริ่มใช้งาน</h1>
+      <p class="section-sub">เปิดเซิร์ฟเวอร์ · สร้างแคมเปญ · ผู้เล่นเข้าร่วม ใช้เวลาไม่ถึง 2 นาที</p>
+    </div>
+
+    <h2>DM — เปิดเซิร์ฟเวอร์</h2>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <div class="step-title">รันเซิร์ฟเวอร์</div>
+          <div class="step-desc">เปิด terminal ที่โฟลเดอร์โปรแกรม แล้วรัน <code>npm run dev</code> (dev mode) หรือ <code>npm start</code> (production) เซิร์ฟเวอร์จะขึ้นที่ port 3000</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <div class="step-title">เปิด browser ไปที่ <code>http://localhost:3000</code></div>
+          <div class="step-desc">เห็นหน้าหลักมี 2 ปุ่ม: <strong>Create Campaign</strong> (สำหรับ DM) และ Join Campaign (สำหรับ Player)</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <div class="step-title">บอก IP ให้ผู้เล่น</div>
+          <div class="step-desc">ผู้เล่นเข้าที่ <code>http://&lt;ip-ของเครื่อง-DM&gt;:3000</code> เช่น <code>http://192.168.1.5:3000</code> ต้องอยู่บน Wi-Fi เดียวกัน</div>
+        </div>
+      </div>
+    </div>
+
+    <h2>DM — สร้างแคมเปญ</h2>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <div class="step-title">กด "Create Campaign"</div>
+          <div class="step-desc">จะเปิดฟอร์มให้กรอก Campaign Name และชื่อ DM</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <div class="step-title">กรอกชื่อแคมเปญ + ชื่อ DM → กด Create</div>
+          <div class="step-desc">ระบบสร้างแคมเปญและพา DM เข้าหน้า campaign dashboard อัตโนมัติ</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <div class="step-title">แชร์ Invite Code ให้ผู้เล่น</div>
+          <div class="step-desc">รหัสเชิญมีรูปแบบเช่น <code>K7Q-M2P</code> แสดงบนหน้า campaign ก็อปไปบอกผู้เล่นได้เลย</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tip">
+      <span class="icon">✅</span>
+      <p>Session token ของ DM เก็บใน localStorage — ถ้า browser ปิดแล้วเปิดใหม่ DM จะยังได้ session เดิมคืนมา (ไม่หายแน่นอน)</p>
+    </div>
+
+    <h2>Player — เข้าร่วมแคมเปญ</h2>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <div class="step-title">เปิด browser ไปที่ IP ของ DM</div>
+          <div class="step-desc">เช่น <code>http://192.168.1.5:3000</code> → กด "Join Campaign"</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <div class="step-title">ใส่ Invite Code + ชื่อที่แสดง</div>
+          <div class="step-desc">ชื่อต้องไม่ซ้ำกับคนอื่นในห้อง ระบบจะแจ้งเตือนถ้าชื่อซ้ำ</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <div class="step-title">กด Join → เข้าสู่ห้อง</div>
+          <div class="step-desc">DM และ player คนอื่นจะเห็นชื่อขึ้นใน roster ทันที (real-time ≤ 500ms)</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="warn">
+      <span class="icon">⚠️</span>
+      <p>ถ้าเชื่อมต่อขาด browser จะ reconnect อัตโนมัติและโหลด state ล่าสุดจากเซิร์ฟเวอร์คืนมา ไม่ต้องทำอะไรเพิ่ม</p>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════
+       3. CHARACTERS
+  ═══════════════════════════════════════════════ -->
+  <a class="anchor" id="characters"></a>
+  <section class="section">
+    <div class="section-header">
+      <div class="section-badge badge-player">Player</div>
+      <h1 class="section-title">ตัวละคร (Character Sheet)</h1>
+      <p class="section-sub">สร้างตัวละคร D&amp;D 5e เต็มรูปแบบ — ระบบ auto-fill ค่าตามกฎให้อัตโนมัติ</p>
+    </div>
+
+    <p>ผู้เล่นแต่ละคนสร้างตัวละคร <strong>1 ตัว</strong>ต่อแคมเปญ ระบบรองรับทุกคลาสและ subclass จาก SRD 5.1 + community OGL</p>
+
+    <h2>สร้างตัวละครใหม่</h2>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <div class="step-title">กด "New Character" ในหน้า campaign</div>
+          <div class="step-desc">เปิด wizard หลายขั้น — กรอกทีละ step ได้เลย</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <div class="step-title">เลือก Race</div>
+          <div class="step-desc">มี 13 race + subraces จาก SRD; ระบบเติม speed, traits, stat modifier อัตโนมัติ</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <div class="step-title">เลือก Class + Level</div>
+          <div class="step-desc">12 คลาส × progression 1–20; ระบบคำนวณ HP, proficiency bonus, spell slots, features ราย level ให้ทันที</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <div class="step-title">เลือก Subclass (เมื่อถึง level)</div>
+          <div class="step-desc">109 subclass (12 SRD + 97 community OGL) เลือกแล้วระบบเติม feature ของ subclass ตาม level อัตโนมัติ</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">5</div>
+        <div class="step-body">
+          <div class="step-title">เลือก Background (optional)</div>
+          <div class="step-desc">42 background — เพิ่ม skill/tool proficiency และ feature พิเศษ</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">6</div>
+        <div class="step-body">
+          <div class="step-title">กรอก Ability Scores + Skill Choices</div>
+          <div class="step-desc">ใส่ค่า 6 ability (STR/DEX/CON/INT/WIS/CHA) และเลือก skill proficiency ตามจำนวนที่คลาส/background ให้; modifier/saves คำนวณอัตโนมัติ</div>
+        </div>
+      </div>
+    </div>
+
+    <h2>แท็บบนชีตตัวละคร</h2>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">⚔️ Core</div>
+        <p style="font-size:14px;color:var(--muted);">Ability scores · Saving throws · Skill checks · Passive Perception · Proficiency Bonus · Initiative</p>
+      </div>
+      <div class="card">
+        <div class="card-title">❤️ Combat</div>
+        <p style="font-size:14px;color:var(--muted);">HP (current/max) · AC · Speed · Hit Dice · Death saves · Attacks</p>
+      </div>
+      <div class="card">
+        <div class="card-title">✨ Features</div>
+        <p style="font-size:14px;color:var(--muted);">Features ทุกอย่างตาม level จาก Class + Subclass + Race + Background</p>
+      </div>
+      <div class="card">
+        <div class="card-title">🔮 Spells</div>
+        <p style="font-size:14px;color:var(--muted);">รายการ spell ที่รู้/เตรียมไว้ · Spell slots ราย level · Spellcasting ability</p>
+      </div>
+    </div>
+
+    <h2>Auto-fill ทำงานอย่างไร</h2>
+    <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>ค่า</th><th>ระบบคำนวณจาก</th><th>แก้ได้?</th></tr></thead>
+      <tbody>
+        <tr><td>HP</td><td>Hit Die ของ class × level + CON modifier</td><td>✓ แก้ทับได้</td></tr>
+        <tr><td>Proficiency Bonus</td><td>Level (ตาม ClassLevel table)</td><td>ดูอ่านอย่างเดียว</td></tr>
+        <tr><td>Saving Throws</td><td>Ability mod + prof bonus (ถ้า proficient)</td><td>✓ แก้ทับได้</td></tr>
+        <tr><td>Skills</td><td>Ability mod + prof bonus (ถ้าเลือก)</td><td>✓ แก้ทับได้</td></tr>
+        <tr><td>Spell Slots</td><td>ClassLevel.spellSlotsJson ตาม level</td><td>✓ ใช้/คืน slot ได้</td></tr>
+        <tr><td>Features</td><td>ClassLevel + Subclass + Race + Background</td><td>ดูอ่านอย่างเดียว</td></tr>
+      </tbody>
+    </table>
+    </div>
+
+    <div class="info">
+      <span class="icon">🔮</span>
+      <p>ถ้าปรับ level ขึ้นหรือลง — ระบบ recompute proficiency bonus, spell slots, features ใหม่อัตโนมัติ โดยไม่ทับค่าที่ผู้เล่นแก้ทับไว้ด้วยมือ</p>
+    </div>
+
+    <h2>สิทธิ์การแก้ไข</h2>
+    <div class="pill-list">
+      <span class="pill accent">เจ้าของ: แก้ชีตตัวเองได้ทุกอย่าง</span>
+      <span class="pill arcane">DM: ดูชีต player ทุกคนได้ แต่แก้ไม่ได้</span>
+      <span class="pill hp">Player อื่น: ไม่เห็นชีตของกันและกัน</span>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════
+       4. INVENTORY
+  ═══════════════════════════════════════════════ -->
+  <a class="anchor" id="inventory"></a>
+  <section class="section">
+    <div class="section-header">
+      <div class="section-badge badge-player">Player</div>
+      <h1 class="section-title">คลังไอเทม (Inventory)</h1>
+      <p class="section-sub">จัดการไอเทม · ใส่/ถอดอุปกรณ์ · attunement · เงิน</p>
+    </div>
+
+    <h2>เพิ่มไอเทมใหม่</h2>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <div class="step-title">ไปที่แท็บ Inventory ในชีตตัวละคร</div>
+          <div class="step-desc">มีส่วน "Add Item" ให้ค้นหาจากคลัง SRD หรือเพิ่มไอเทมเองแบบ custom</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <div class="step-title">ค้นหาหรือกรอกชื่อ → เลือก item</div>
+          <div class="step-desc">ระบบดึงข้อมูลจาก SRD: weight, properties, damage, rarity ให้อัตโนมัติ; แก้ได้ถ้าต้องการ</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <div class="step-title">ระบุ quantity และ notes → กด Add</div>
+          <div class="step-desc">ไอเทมปรากฏในรายการ; จากนั้น equip/unequip หรือตั้งค่า attunement ได้</div>
+        </div>
+      </div>
+    </div>
+
+    <h2>Attunement (กติกา 5e)</h2>
+    <p>ไอเทมที่ต้อง attune จะมีเครื่องหมาย ◈ — attuned ได้สูงสุด <strong>3 ชิ้น</strong>พร้อมกัน ถ้าพยายาม attune ชิ้นที่ 4 ระบบจะแจ้ง error <em>attunement_limit</em></p>
+
+    <h2>Currency</h2>
+    <div class="stat-row">
+      <div class="stat-box"><div class="stat-val" style="color:var(--accent);font-size:20px;">PP</div><div class="stat-label">Platinum</div></div>
+      <div class="stat-box"><div class="stat-val" style="color:var(--accent);font-size:20px;">GP</div><div class="stat-label">Gold</div></div>
+      <div class="stat-box"><div class="stat-val" style="color:var(--muted);font-size:20px;">EP</div><div class="stat-label">Electrum</div></div>
+      <div class="stat-box"><div class="stat-val" style="color:var(--warning);font-size:20px;">SP</div><div class="stat-label">Silver</div></div>
+      <div class="stat-box"><div class="stat-val" style="color:#CD7F32;font-size:20px;">CP</div><div class="stat-label">Copper</div></div>
+    </div>
+    <p style="color:var(--muted);font-size:14px;">แก้ไขแต่ละสกุลโดยตรงในช่อง currency ของชีต — ระบบเก็บแยกรายสกุล ไม่แปลงอัตโนมัติ</p>
+  </section>
+
+  <!-- ══════════════════════════════════════════════
+       5. COMBAT
+  ═══════════════════════════════════════════════ -->
+  <a class="anchor" id="combat"></a>
+  <section class="section">
+    <div class="section-header">
+      <div class="section-badge badge-dm">DM หลัก · Player ดู</div>
+      <h1 class="section-title">การต่อสู้ (Combat Tracker)</h1>
+      <p class="section-sub">Initiative · HP · conditions · turn order — sync real-time ทุกหน้าจอ</p>
+    </div>
+
+    <p>Combat tracker คือหัวใจของระบบ — DM คุมทุกอย่าง ผู้เล่นดู HP/conditions/initiative ของตัวเองและ NPC ได้แบบ live</p>
+
+    <h2>เปิด Encounter ใหม่</h2>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <div class="step-title">DM กด "New Encounter"</div>
+          <div class="step-desc">ตั้งชื่อ encounter (เช่น "Goblin Ambush at the Bridge") แล้วกด Create</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <div class="step-title">เพิ่มผู้ร่วมต่อสู้ (Combatants)</div>
+          <div class="step-desc">
+            <strong>Player Characters:</strong> เพิ่มจาก character list ได้เลย (HP ดึงมาจากชีตอัตโนมัติ)<br>
+            <strong>Monsters/NPCs:</strong> ค้นหาจากคลัง SRD หรือสร้าง custom combatant
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <div class="step-title">กรอก Initiative</div>
+          <div class="step-desc">DM กรอก initiative ของแต่ละ combatant (จะใช้ลูกเต๋าตัวจริงที่โต๊ะ หรือใช้ dice roller ในโปรแกรมก็ได้) ระบบจัดเรียงให้อัตโนมัติ</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <div class="step-title">กด "Start Encounter"</div>
+          <div class="step-desc">ระบบ broadcast turn order ไปทุกหน้าจอ ผู้เล่นเห็น initiative track ทันที</div>
+        </div>
+      </div>
+    </div>
+
+    <h2>ตัวอย่าง Turn Order</h2>
+    <div style="margin:16px 0;">
+      <div class="turn-row active">
+        <div class="turn-init">18</div>
+        <div class="turn-name">▶ Aria (Wizard)</div>
+        <div class="turn-hp">HP 24/32</div>
+        <div style="font-size:12px;color:var(--muted);">YOUR TURN</div>
+      </div>
+      <div class="turn-row">
+        <div class="turn-init">15</div>
+        <div class="turn-name">Goblin Boss</div>
+        <div class="turn-hp">HP 21/27</div>
+      </div>
+      <div class="turn-row">
+        <div class="turn-init">12</div>
+        <div class="turn-name">Borin (Fighter)</div>
+        <div class="turn-hp">HP 45/52</div>
+      </div>
+      <div class="turn-row">
+        <div class="turn-init">8</div>
+        <div class="turn-name">Goblin ×3</div>
+        <div class="turn-hp">HP 7/7</div>
+      </div>
+    </div>
+
+    <h2>HP Tracking</h2>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title" style="color:var(--danger);">💥 Damage</div>
+        <div class="steps">
+          <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-body"><div class="step-desc">DM คลิก combatant → กรอก damage amount</div></div>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-body"><div class="step-desc">ระบบหัก HP และ broadcast ทันที; HP ไม่ต่ำกว่า 0 (clamp อัตโนมัติ)</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title" style="color:var(--success);">💚 Healing</div>
+        <div class="steps">
+          <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-body"><div class="step-desc">DM หรือ player (เฉพาะตัวเอง) ใส่ healing amount</div></div>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-body"><div class="step-desc">HP เพิ่มขึ้น แต่ไม่เกิน max HP (clamp อัตโนมัติ)</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <h2>Conditions (5e)</h2>
+    <p>DM เพิ่ม/ลบ condition ให้ combatant ได้ — แสดงผลทุกหน้าจอทันที</p>
+    <div class="condition-grid">
+      <span class="condition">Blinded</span>
+      <span class="condition">Charmed</span>
+      <span class="condition">Deafened</span>
+      <span class="condition">Exhausted</span>
+      <span class="condition">Frightened</span>
+      <span class="condition">Grappled</span>
+      <span class="condition">Incapacitated</span>
+      <span class="condition">Invisible</span>
+      <span class="condition">Paralyzed</span>
+      <span class="condition">Petrified</span>
+      <span class="condition">Poisoned</span>
+      <span class="condition">Prone</span>
+      <span class="condition">Restrained</span>
+      <span class="condition">Stunned</span>
+      <span class="condition">Unconscious</span>
+    </div>
+
+    <h2>จัดการ Turn</h2>
+    <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>Action</th><th>ทำโดย</th><th>ผล</th></tr></thead>
+      <tbody>
+        <tr><td>Next Turn</td><td>DM</td><td>เลื่อนไป combatant ถัดไป broadcast ทันที</td></tr>
+        <tr><td>Delay Turn</td><td>DM</td><td>ย้าย combatant ไปท้ายรอบ</td></tr>
+        <tr><td>Remove Combatant</td><td>DM</td><td>ลบออกจาก tracker (เช่น monster ตาย)</td></tr>
+        <tr><td>End Encounter</td><td>DM</td><td>ปิด encounter — HP ของ character sync กลับไปชีต</td></tr>
+      </tbody>
+    </table>
+    </div>
+
+    <div class="tip">
+      <span class="icon">✅</span>
+      <p><strong>Whose turn</strong> ไม่ได้บอกด้วยสีอย่างเดียว — มีกรอบทอง ตัวอักษร "▶ YOUR TURN" และ background ต่างกันด้วย อ่านง่ายแม้ห้องมืด</p>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════
+       6. STORY
+  ═══════════════════════════════════════════════ -->
+  <a class="anchor" id="story"></a>
+  <section class="section">
+    <div class="section-header">
+      <div class="section-badge badge-dm">DM</div>
+      <h1 class="section-title">เรื่องราว (Story Module)</h1>
+      <p class="section-sub">Session logs · Quests · NPCs · Journal — เก็บประวัติแคมเปญทั้งหมดในที่เดียว</p>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">📅 Session Logs</div>
+        <p style="font-size:14px;color:var(--muted);">บันทึกแต่ละครั้งที่เล่น — วันที่, summary/recap ที่ DM เขียน, encounters ที่เกิดขึ้น</p>
+      </div>
+      <div class="card">
+        <div class="card-title">⚔️ Quests</div>
+        <p style="font-size:14px;color:var(--muted);">สร้างและติดตาม quest — ชื่อ, ผู้มอบ, objectives, reward; สถานะ: active / completed / failed</p>
+      </div>
+      <div class="card">
+        <div class="card-title">🧝 NPCs</div>
+        <p style="font-size:14px;color:var(--muted);">บันทึก NPC สำคัญ — ชื่อ, appearance, personality, secret, faction, CR</p>
+      </div>
+      <div class="card">
+        <div class="card-title">📓 Journal</div>
+        <p style="font-size:14px;color:var(--muted);">บันทึกอิสระ — event, clue, lore ที่ DM จดไว้; ค้นหาได้ผ่าน global search</p>
+      </div>
+    </div>
+
+    <h2>สร้าง Session Log</h2>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <div class="step-title">กด "New Session" ในแท็บ Story</div>
+          <div class="step-desc">ระบุวันที่เล่น (default = วันนี้) และชื่อ session (optional)</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <div class="step-title">เขียน Recap / Summary</div>
+          <div class="step-desc">เขียนได้เองหรือใช้ AI DM Assistant ช่วยสร้าง recap draft ก็ได้ (ดูหัวข้อ AI)</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <div class="step-title">กด Save — session ปรากฏในรายการ</div>
+          <div class="step-desc">session เก่าๆ ยังดูย้อนหลังได้เสมอ</div>
+        </div>
+      </div>
+    </div>
+
+    <h2>สถานะ Quest</h2>
+    <div class="pill-list">
+      <span class="pill success">active — กำลังดำเนินการ</span>
+      <span class="pill accent">completed — สำเร็จแล้ว</span>
+      <span class="pill hp">failed — ล้มเหลว</span>
+    </div>
+
+    <div class="tip">
+      <span class="icon">✅</span>
+      <p>NPC ที่สร้างจาก AI DM Assistant จะปรากฏในรายการ NPC เดียวกัน — DM approve ครั้งเดียว ใช้ได้ทั้งใน story และ combat tracker</p>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════
+       7. PLAYER UI + DICE
+  ═══════════════════════════════════════════════ -->
+  <a class="anchor" id="playerui"></a>
+  <section class="section">
+    <div class="section-header">
+      <div class="section-badge badge-both">DM + Player</div>
+      <h1 class="section-title">ลูกเต๋า · Quick-View · Dashboard · Search</h1>
+      <p class="section-sub">เครื่องมือระหว่างเล่น — โยนลูกเต๋าแบบ broadcast, ดู stat ด่วน, search ทุกอย่าง</p>
+    </div>
+
+    <h2>🎲 Dice Roller</h2>
+    <p>ทุกคน (DM + player) โยนลูกเต๋าได้ — ผลออกที่หน้าจอทุกคนพร้อมกัน</p>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">Public Roll <span class="role role-player">ทุกคน</span></div>
+        <div class="steps">
+          <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-body"><div class="step-desc">เลือก formula เช่น <code>d20</code>, <code>2d6+3</code>, <code>4d6kh3</code></div></div>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-body"><div class="step-desc">เพิ่ม context เช่น "Attack with Longsword" (optional, ตัด 80 ตัวอักษร)</div></div>
+          </div>
+          <div class="step">
+            <div class="step-num">3</div>
+            <div class="step-body"><div class="step-desc">กด Roll — ผลลัพธ์ broadcast ไปทุกคนทันที พร้อมชื่อผู้โยน</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Private DM Roll <span class="role role-dm">DM เท่านั้น</span></div>
+        <p style="font-size:14px;color:var(--muted);">DM เปิด "Private" ก่อนโยน — ผลเห็นแค่ DM เท่านั้น ไม่บันทึกประวัติ ไม่ broadcast</p>
+      </div>
+    </div>
+
+    <h2>โหมด Advantage / Disadvantage</h2>
+    <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>โหมด</th><th>วิธีทำงาน</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Normal</strong></td><td>โยน 1 ลูกเต๋าตาม formula</td></tr>
+        <tr><td><strong>Advantage</strong></td><td>โยน d20 สองลูก เอาค่าสูงกว่า</td></tr>
+        <tr><td><strong>Disadvantage</strong></td><td>โยน d20 สองลูก เอาค่าต่ำกว่า</td></tr>
+      </tbody>
+    </table>
+    </div>
+
+    <div class="warn">
+      <span class="icon">🛡️</span>
+      <p><strong>Trust boundary:</strong> ถ้า browser ส่งผลลูกเต๋ามาแทน server จะ re-validate ว่าหน้าลูกเต๋าอยู่ในช่วงถูกต้อง (1–6 สำหรับ d6, 1–20 สำหรับ d20 ฯลฯ) และคำนวณผลรวมใหม่ฝั่ง server เสมอ — ป้องกันการโกง</p>
+    </div>
+
+    <h2>🪟 Quick-View Panel</h2>
+    <p>Panel ด้านข้างสำหรับดูสถิติตัวละครตัวเองแบบรวดเร็วระหว่างเล่น</p>
+    <div class="stat-row">
+      <div class="stat-box"><div class="stat-val hp">28</div><div class="stat-label">Current HP</div></div>
+      <div class="stat-box"><div class="stat-val">45</div><div class="stat-label">Max HP</div></div>
+      <div class="stat-box"><div class="stat-val ac">16</div><div class="stat-label">AC</div></div>
+      <div class="stat-box"><div class="stat-val init">+3</div><div class="stat-label">Initiative</div></div>
+      <div class="stat-box"><div class="stat-val" style="font-size:18px;">14</div><div class="stat-label">Passive Perc</div></div>
+    </div>
+    <p style="color:var(--muted);font-size:14px;">Quick-view ยังแสดง: Spell slots ที่ใช้ไป · Conditions ปัจจุบัน · Ability checks ที่คลิกโยนได้เลย</p>
+    <p style="color:var(--muted);font-size:14px;">Player แก้ HP ได้จาก quick-view โดยตรง — ผล sync กลับ server และ combat tracker ทันที</p>
+
+    <h2>📊 DM Dashboard <span class="role role-dm">DM เท่านั้น</span></h2>
+    <div class="grid-3">
+      <div class="card" style="padding:16px;">
+        <div style="font-size:11px;color:var(--faint);text-transform:uppercase;letter-spacing:.08em;">Players Online</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:28px;color:var(--text);">4</div>
+      </div>
+      <div class="card" style="padding:16px;">
+        <div style="font-size:11px;color:var(--faint);text-transform:uppercase;letter-spacing:.08em;">Active Quests</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:28px;color:var(--accent);">3</div>
+      </div>
+      <div class="card" style="padding:16px;">
+        <div style="font-size:11px;color:var(--faint);text-transform:uppercase;letter-spacing:.08em;">Sessions</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:28px;color:var(--arcane);">12</div>
+      </div>
+    </div>
+    <p style="color:var(--muted);font-size:14px;">Dashboard ยังแสดง: Party HP สรุป · Last session recap · Active encounter status · NPC count</p>
+
+    <h2>🔍 Global Search</h2>
+    <p>ค้นหาทุกอย่างในแคมเปญด้วย searchbar เดียว — พิมพ์อย่างน้อย <strong>2 ตัวอักษร</strong></p>
+    <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>ประเภท</th><th>Hint ที่แสดง</th><th>ตัวอย่าง</th></tr></thead>
+      <tbody>
+        <tr><td>Spell</td><td>Cantrip · School หรือ Level N · School</td><td>"Cantrip · Evocation"</td></tr>
+        <tr><td>Item</td><td>Item type</td><td>"weapon"</td></tr>
+        <tr><td>Monster</td><td>CR x</td><td>"CR 1/4"</td></tr>
+        <tr><td>Character</td><td>class · Lv N</td><td>"wizard · Lv 5"</td></tr>
+        <tr><td>Quest</td><td>ชื่อผู้มอบหรือ status</td><td>"from Elder Maren"</td></tr>
+        <tr><td>NPC</td><td>Faction หรือ "NPC"</td><td>"Cult of the Dragon"</td></tr>
+        <tr><td>Journal</td><td>60 ตัวอักษรแรกของเนื้อหา (one-line)</td><td>"We met the king at the..."</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════
+       8. AI DM ASSISTANT
+  ═══════════════════════════════════════════════ -->
+  <a class="anchor" id="ai"></a>
+  <section class="section">
+    <div class="section-header">
+      <div class="section-badge badge-ai">DM เท่านั้น · AI Features</div>
+      <h1 class="section-title">✦ AI DM Assistant</h1>
+      <p class="section-sub">สร้าง NPC · loot · quest · recap ด้วย AI — DM อนุมัติทุก draft ก่อนบันทึกเข้าแคมเปญ</p>
+    </div>
+
+    <div class="info">
+      <span class="icon">✦</span>
+      <p>AI ช่วยเขียน <strong>prose เท่านั้น</strong> — XP, loot tier, spell slots, dice คำนวณโดย code ฝั่ง server ไม่ใช้ AI คำนวณ ผลลัพธ์จึงถูกต้องตามกฎ 5e เสมอ ไม่ขึ้นกับ model</p>
+    </div>
+
+    <h2>Providers ที่รองรับ</h2>
+    <div class="provider-banner provider-online">
+      <span style="font-size:20px;">🟢</span>
+      <div>
+        <strong>Ollama (แนะนำ)</strong> — รันบนเครื่อง DM เอง ฟรี ไม่ส่งข้อมูลออก<br>
+        <span style="font-size:13px;opacity:.8;">ติดตั้ง Ollama → ดาวน์โหลด model (ค่าเริ่มต้น qwen2.5:14b) → รัน Ollama ก่อนเปิดเกม</span>
+      </div>
+    </div>
+    <div class="provider-banner">
+      <span style="font-size:20px;">📋</span>
+      <div>
+        <strong>Import from Claude (ใช้ได้เสมอ)</strong> — paste ข้อความจาก Claude/ChatGPT ใดๆ มาแปลงเป็น draft<br>
+        <span style="font-size:13px;opacity:.8;">ไม่ต้องรัน Ollama · ทำงานแบบ offline ได้</span>
+      </div>
+    </div>
+
+    <div class="warn">
+      <span class="icon">⚠️</span>
+      <p>ถ้า Ollama ไม่ได้รัน ระบบจะแสดง banner "Ollama not connected" ในแพนเนล AI — แต่ <strong>Import ยังใช้ได้เสมอ</strong> และ feature อื่นทุกอย่างในโปรแกรมทำงานปกติ ไม่ต้องมี AI</p>
+    </div>
+
+    <h2>ประเภท Draft ที่สร้างได้</h2>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title" style="color:#A78BFA;">🧝 NPC Draft</div>
+        <p style="font-size:14px;color:var(--muted);">ระบุ prompt เช่น "tiefling merchant สงสัยน่าไว้ใจ CR 3" — ได้ชื่อ, หน้าตา, นิสัย, ความลับ; Approve → NPC บันทึกใน Story</p>
+      </div>
+      <div class="card">
+        <div class="card-title" style="color:var(--accent);">💎 Loot Draft</div>
+        <p style="font-size:14px;color:var(--muted);">ระบุ CR และ prompt — XP คำนวณจาก crToXp() (code ไม่ใช่ AI), tier กำหนดจาก CR bracket; AI เขียนแค่ชื่อไอเทมและ flavor text</p>
+      </div>
+      <div class="card">
+        <div class="card-title" style="color:var(--success);">📜 Quest Draft</div>
+        <p style="font-size:14px;color:var(--muted);">ระบุ theme เช่น "party เพิ่งเคลียร์ dungeon ให้ hook ต่อ" — ได้ชื่อ quest, objectives, reward hint; Approve → Quest บันทึกใน Story</p>
+      </div>
+      <div class="card">
+        <div class="card-title" style="color:var(--warning);">📰 Session Recap</div>
+        <p style="font-size:14px;color:var(--muted);">ระบุ encounters ที่เกิดขึ้นใน session — AI เขียน opening narration / recap; Approve → บันทึกใน Session.summary</p>
+      </div>
+    </div>
+
+    <h2>Flow: Generate → Review → Approve</h2>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <div class="step-title">เลือกประเภท → กรอก prompt → กด Generate</div>
+          <div class="step-desc">Prompt สูงสุด 2,000 ตัวอักษร สำหรับ loot ต้องระบุ CR ด้วย</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <div class="step-title">ตรวจ Draft ที่ได้</div>
+          <div class="step-desc">Draft แสดงชื่อ / ลักษณะ / ข้อมูลสำคัญตามประเภท DM อ่านและแก้ไขได้ก่อน approve</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <div class="step-title">แก้ rawText (optional)</div>
+          <div class="step-desc">กด "Edit" ใน draft card → แก้เนื้อหาตรงๆ → ระบบ re-parse JSON ใหม่</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <div class="step-title">Approve หรือ Reject</div>
+          <div class="step-desc">
+            <strong>Approve</strong> → entity สร้างจริงใน story repo (NPC/Quest/Session recap) หรือแสดง loot award<br>
+            <strong>Reject</strong> → soft delete (ยังเก็บ 30 วัน); ไม่มีอะไรเปลี่ยนแปลงในแคมเปญ
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <h2>Import from Claude (Paste Path)</h2>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <div class="step-title">กด "Import" → เลือกประเภท entity</div>
+          <div class="step-desc">เปิด modal ที่มี textarea รอรับข้อความ</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <div class="step-title">Paste ข้อความจาก Claude / ChatGPT</div>
+          <div class="step-desc">ใส่ได้สูงสุด 10,000 ตัวอักษร ระบบพยายาม parse JSON จาก text</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <div class="step-title">กด "Parse &amp; Save Draft" → Review → Approve</div>
+          <div class="step-desc">ถ้า parse ไม่ได้ draft ยังบันทึกไว้ — DM แก้ใน edit mode แล้ว approve</div>
+        </div>
+      </div>
+    </div>
+
+    <h2>Loot — ตัวอย่างค่าที่ระบบคำนวณให้</h2>
+    <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>CR</th><th>XP (crToXp)</th><th>Rarity</th><th>จำนวน item</th></tr></thead>
+      <tbody>
+        <tr><td>CR 0 – &lt;1</td><td>0 – 25</td><td>Common</td><td>1</td></tr>
+        <tr><td>CR 1 – 4</td><td>200 – 1,100</td><td>Common</td><td>1</td></tr>
+        <tr><td>CR 5 – 10</td><td>1,800 – 5,900</td><td>Uncommon</td><td>2</td></tr>
+        <tr><td>CR 11 – 16</td><td>7,200 – 15,000</td><td>Rare</td><td>2</td></tr>
+        <tr><td>CR 17+</td><td>18,000+</td><td>Very Rare</td><td>3</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p style="color:var(--muted);font-size:13px;">AI จะได้รับ item name pool จากคลัง SRD ให้เลือกชื่อ — ปริมาณและ rarity ไม่ถามโมเดล</p>
+  </section>
+
+  <!-- ══════════════════════════════════════════════
+       8.5 SAVE / RESUME / BACKUP
+  ═══════════════════════════════════════════════ -->
+  <a class="anchor" id="save"></a>
+  <section class="section">
+    <div class="section-header">
+      <div class="section-badge badge-both">DM + Player</div>
+      <h1 class="section-title">เซฟ · เล่นต่อ · Backup</h1>
+      <p class="section-sub">ข้อมูลทุกอย่างเซฟอัตโนมัติลงฐานข้อมูล — เปิดมาวันหลังก็เล่นต่อได้ ไม่ต้องกด Save</p>
+    </div>
+
+    <h2>1. เซฟอัตโนมัติ — ไม่มีปุ่ม Save</h2>
+    <p style="font-size:14px;color:var(--muted);">ทุกการกระทำเขียนลง <strong>SQLite (<code>prisma/dev.db</code>)</strong> ทันที ไม่ต้องกดบันทึก สิ่งที่อยู่ถาวร:</p>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">✅ อยู่ถาวรในฐานข้อมูล</div>
+        <p style="font-size:13px;color:var(--muted);">ตัวละคร (รวมที่สร้างใหม่), HP/สถานะ/condition, item &amp; spell, currency, Story (session/quest/NPC/journal), ผล combat &amp; dice</p>
+      </div>
+      <div class="card">
+        <div class="card-title">⚡ อยู่แค่ตอน server รัน (live state)</div>
+        <p style="font-size:13px;color:var(--muted);">ใครออนไลน์อยู่ (presence), socket connection — สร้างใหม่อัตโนมัติเมื่อ reconnect ไม่ใช่ข้อมูลที่ต้องเซฟ</p>
+      </div>
+    </div>
+
+    <h2>2. เล่นต่อวันถัดไป</h2>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <div class="step-title">เปิด Ollama (ถ้าจะใช้ AI) แล้วรัน <code>npm run dev</code></div>
+          <div class="step-desc">server โหลดฐานข้อมูล + <strong>rehydrate</strong> แคมเปญที่ยัง active กลับมาให้เองอัตโนมัติ</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <div class="step-title">เปิด URL แคมเปญเดิม</div>
+          <div class="step-desc">browser จำ session token ไว้ใน localStorage (<code>dnd.sessions</code>) → เชื่อมต่อกลับให้เอง <strong>ไม่ต้องใส่ invite code ซ้ำ</strong> และเข้า role เดิม (DM / player)</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <div class="step-title">ตัวละครที่สร้างเมื่อวานยังอยู่ครบ</div>
+          <div class="step-desc">เพราะอยู่ในฐานข้อมูล ไม่ใช่แค่ใน RAM — เล่นต่อได้ทันที</div>
+        </div>
+      </div>
+    </div>
+
+    <h2>3. Rejoin-by-name — กู้ตัวละครคืนเมื่อ session หาย</h2>
+    <p style="font-size:14px;color:var(--muted);">ถ้า <strong>localStorage หาย / เปลี่ยน browser / ล้าง cache</strong> แค่กด Join ด้วย <strong>ชื่อผู้เล่นเดิม</strong> ในแคมเปญเดิม → ระบบเชื่อมคุณกลับเข้า session เดิม พร้อม<strong>ตัวละครที่ claim ไว้</strong> (ไม่สร้าง seat ซ้ำ, ไม่ขึ้น error ชื่อซ้ำ)</p>
+    <div class="pill-list">
+      <span class="pill success">ชื่อผู้เล่นเดิม → ได้ตัวละครเดิมคืน</span>
+      <span class="pill accent">case-insensitive (Thorin = thorin)</span>
+      <span class="pill hp">ชื่อ DM ถูกสงวน — สวมสิทธิ์ DM ไม่ได้</span>
+    </div>
+    <div class="tip">
+      <span class="icon">🔐</span>
+      <p>Trust model แบบ LAN: <strong>invite code คือความลับที่แชร์กัน</strong>, ส่วน<strong>ชื่อ = ตัวตน</strong> — เหมาะกับโต๊ะที่เล่นกับคนที่ไว้ใจ จึงไม่ต้องมี password</p>
+    </div>
+
+    <h2>4. Export / Import Backup</h2>
+    <p style="font-size:14px;color:var(--muted);">สำหรับ <strong>สำรองข้อมูล</strong> (เผื่อ DB พัง) หรือ <strong>ย้ายไปเครื่องอื่น / แชร์ให้คนอื่น</strong> — ไม่จำเป็นสำหรับเล่นต่อในเครื่องเดิม</p>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">📤 Export (DM เท่านั้น)</div>
+        <p style="font-size:13px;color:var(--muted);">ในฝั่ง DM ที่กล่อง invite code → ปุ่ม <strong>"Export backup"</strong> ดาวน์โหลดเป็นไฟล์ <code>campaign-&lt;ชื่อ&gt;-&lt;วันที่&gt;.json</code></p>
+      </div>
+      <div class="card">
+        <div class="card-title">📥 Import / Restore</div>
+        <p style="font-size:13px;color:var(--muted);">หน้าแรก → <strong>"Restore from backup"</strong> (หรือเปิด <code>/import</code>) → เลือกไฟล์ → สร้างแคมเปญใหม่พร้อม <strong>invite code ใหม่</strong></p>
+      </div>
+    </div>
+
+    <h2>ข้อมูลที่อยู่ในไฟล์ Export</h2>
+    <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>รวมอยู่ในไฟล์ ✅</th><th>ไม่รวม ❌ (เหตุผล)</th></tr></thead>
+      <tbody>
+        <tr><td>ตัวละคร PC + NPC (stat ครบ, spell, item)</td><td>session token (ความปลอดภัย)</td></tr>
+        <tr><td>Story: session, quest, NPC, journal</td><td>internal ID (สร้างใหม่ตอน import)</td></tr>
+        <tr><td>Encounter + combatant</td><td>ประวัติ dice roll (operational noise)</td></tr>
+        <tr><td>ชื่อแคมเปญ</td><td>AI draft ที่ยังไม่ approve</td></tr>
+      </tbody>
+    </table>
+    </div>
+
+    <div class="tip">
+      <span class="icon">⚠️</span>
+      <p>หลัง Import ผู้เล่นต้อง <strong>join ใหม่ด้วย invite code ใหม่</strong> (session เดิมใช้กับแคมเปญที่สร้างใหม่ไม่ได้) · ของอ้างอิง SRD (spell/item/monster) ลิงก์ด้วย slug จึงต้องมี seed เดิมในเครื่องปลายทาง (ทุก install seed เหมือนกันอยู่แล้ว)</p>
+    </div>
+
+    <div class="tip">
+      <span class="icon">💡</span>
+      <p>กันพลาดแบบชัวร์: กด <strong>Export backup</strong> เก็บไฟล์ไว้ท้าย session ทุกครั้ง — มีไฟล์ restore ไว้เสมอ แม้ DB หรือ browser จะมีปัญหา</p>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════
+       9. 5E REFERENCE
+  ═══════════════════════════════════════════════ -->
+  <a class="anchor" id="reference"></a>
+  <section class="section">
+    <div class="section-header">
+      <div class="section-badge badge-both">DM + Player</div>
+      <h1 class="section-title">ข้อมูลอ้างอิง 5e SRD</h1>
+      <p class="section-sub">คลัง spell · item · monster ที่ seed ไว้จาก SRD 5.1 + community OGL — อ่านได้ทุกคน</p>
+    </div>
+
+    <div class="grid-3">
+      <div class="card">
+        <div class="card-title">🔮 Spells</div>
+        <p style="font-size:13px;color:var(--muted);">319+ spells — level, school, casting time, range, components, description</p>
+      </div>
+      <div class="card">
+        <div class="card-title">⚔️ Items</div>
+        <p style="font-size:13px;color:var(--muted);">weapons, armor, tools, magic items — weight, properties, damage, rarity</p>
+      </div>
+      <div class="card">
+        <div class="card-title">👹 Monsters</div>
+        <p style="font-size:13px;color:var(--muted);">monster statblocks — CR, HP, AC, ability scores, actions, legendary actions</p>
+      </div>
+    </div>
+
+    <h2>ข้อมูล Character Reference</h2>
+    <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>ข้อมูล</th><th>จำนวน</th><th>แหล่งที่มา</th></tr></thead>
+      <tbody>
+        <tr><td>Classes</td><td>12</td><td>SRD 5.1</td></tr>
+        <tr><td>Subclasses</td><td>109</td><td>12 SRD + 97 community OGL (Open5e / Tal'Dorei / Tome of Heroes)</td></tr>
+        <tr><td>Class Progressions (1–20)</td><td>240 แถว</td><td>SRD 5.1</td></tr>
+        <tr><td>Races</td><td>13 (+ subraces)</td><td>SRD 5.1</td></tr>
+        <tr><td>Backgrounds</td><td>42</td><td>1 SRD + 41 community OGL</td></tr>
+        <tr><td>Features</td><td>936</td><td>SRD 5.1 + community OGL</td></tr>
+      </tbody>
+    </table>
+    </div>
+
+    <div class="info">
+      <span class="icon">📜</span>
+      <p>ข้อมูลทั้งหมดเป็น <strong>OGL / CC open-licensed</strong> — ไม่มี copyrighted WotC PHB content ในระบบ เนื้อหาที่ใช้ไม่ได้ผ่านการ license จาก WotC โดยตรง</p>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════
+       10. ROLES SUMMARY
+  ═══════════════════════════════════════════════ -->
+  <a class="anchor" id="roles"></a>
+  <section class="section">
+    <div class="section-header">
+      <div class="section-badge badge-both">สรุปสิทธิ์</div>
+      <h1 class="section-title">สิทธิ์ DM vs Player</h1>
+      <p class="section-sub">ระบบบังคับ server-side — client ปลอมสิทธิ์ไม่ได้</p>
+    </div>
+
+    <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>Feature</th><th>DM</th><th>Player</th></tr></thead>
+      <tbody>
+        <tr><td>สร้าง/ลบแคมเปญ</td><td>✓</td><td>✗</td></tr>
+        <tr><td>เห็น Invite Code</td><td>✓</td><td>✗</td></tr>
+        <tr><td>ดูชีตตัวละครผู้เล่น</td><td>✓ (อ่านอย่างเดียว)</td><td>เฉพาะของตัวเอง</td></tr>
+        <tr><td>แก้ชีตตัวละคร</td><td>✗</td><td>✓ เฉพาะของตัวเอง</td></tr>
+        <tr><td>เปิด/ปิด Encounter</td><td>✓</td><td>✗</td></tr>
+        <tr><td>แก้ HP / Conditions combatant</td><td>✓ ทุกคน</td><td>✓ เฉพาะตัวเอง</td></tr>
+        <tr><td>เพิ่ม/แก้ Story (session/quest/NPC/journal)</td><td>✓</td><td>✗</td></tr>
+        <tr><td>Private Roll</td><td>✓</td><td>✗</td></tr>
+        <tr><td>Public Roll</td><td>✓</td><td>✓</td></tr>
+        <tr><td>DM Dashboard</td><td>✓</td><td>✗ (403)</td></tr>
+        <tr><td>AI DM Assistant</td><td>✓</td><td>✗ (403)</td></tr>
+        <tr><td>ดู 5e Reference</td><td>✓</td><td>✓</td></tr>
+        <tr><td>Global Search</td><td>✓</td><td>✓</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════
+       11. TIPS
+  ═══════════════════════════════════════════════ -->
+  <a class="anchor" id="tips"></a>
+  <section class="section">
+    <div class="section-header">
+      <div class="section-badge badge-both">เคล็ดลับ</div>
+      <h1 class="section-title">เคล็ดลับที่โต๊ะ</h1>
+      <p class="section-sub">วิธีใช้งานให้ราบรื่นที่สุดในระหว่างเล่น</div>
+
+    <div class="tip">
+      <span class="icon">✅</span>
+      <p><strong>เตรียม Encounter ก่อนเล่น</strong> — DM เพิ่ม monster/NPC ใน combat tracker ก่อนเริ่ม session จะได้ไม่เสียเวลาระหว่างเล่น</p>
+    </div>
+
+    <div class="tip">
+      <span class="icon">✅</span>
+      <p><strong>ใช้ 3D Dice บนมือถือ</strong> — ระบบรองรับ 3D dice animation บน mobile browser ผู้เล่นโยนลูกเต๋าจากโทรศัพท์แล้วผลขึ้นทุกหน้าจอ</p>
+    </div>
+
+    <div class="tip">
+      <span class="icon">✅</span>
+      <p><strong>AI + Import สลับกันได้</strong> — ถ้าวันนี้ไม่ได้รัน Ollama ก็ใช้ Import แทนได้ — paste คำตอบจาก Claude.ai ที่โทรศัพท์เข้ามาโดยตรง</p>
+    </div>
+
+    <div class="warn">
+      <span class="icon">⚠️</span>
+      <p><strong>อย่าปิด terminal ระหว่างเล่น</strong> — เซิร์ฟเวอร์รันใน terminal ของ DM ถ้าปิด terminal ทุกคนจะหลุดออกจากห้อง (แต่ข้อมูลไม่หาย — รัน <code>npm start</code> ใหม่แล้วเข้าได้เลย)</p>
+    </div>
+
+    <div class="warn">
+      <span class="icon">⚠️</span>
+      <p><strong>Spell Slot ใช้ได้จาก Quick-View</strong> — player tick slot ที่ใช้ได้จาก panel ด้านข้าง ไม่ต้องกลับไปเปิด character sheet</p>
+    </div>
+
+    <div class="info">
+      <span class="icon">🔍</span>
+      <p><strong>Search shortcut</strong> — กด <code>/</code> หรือ <code>Ctrl+K</code> เปิด global search ได้จากหน้าไหนก็ได้ค้นหา spell, NPC, item, quest ในแคมเปญทันที</p>
+    </div>
+
+    <div class="info">
+      <span class="icon">💾</span>
+      <p><strong>ข้อมูลเก็บ local</strong> — ทุกอย่างอยู่ใน SQLite database บนเครื่อง DM ไฟล์อยู่ที่ <code>prisma/dev.db</code> สำรองข้อมูลโดย copy file นี้ไว้ก็พอ</p>
+    </div>
+
+    <hr>
+
+    <h2>Keyboard Shortcuts ที่ควรรู้</h2>
+    <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>Shortcut</th><th>Action</th></tr></thead>
+      <tbody>
+        <tr><td><code>/ </code> หรือ <code>Ctrl+K</code></td><td>เปิด Global Search</td></tr>
+        <tr><td><code>Esc</code></td><td>ปิด modal / dialog</td></tr>
+        <tr><td>คลิก scrim</td><td>ปิด modal</td></tr>
+      </tbody>
+    </table>
+    </div>
+
+    <hr>
+
+    <div style="text-align:center;padding:32px 0;color:var(--faint);">
+      <div style="font-family:'Cinzel',serif;font-size:18px;color:var(--accent);margin-bottom:8px;">D&amp;D Campaign Manager</div>
+      <div style="font-size:13px;">Self-hosted · Local-first · Free · Open-licensed content</div>
+      <div style="font-size:12px;margin-top:8px;">คู่มือฉบับนี้ครอบคลุม Sprint 0–7 (v1.0 complete) · 648 tests ✅</div>
+    </div>
+  </section>
+
+</main>
+
+<script>
+  const links = document.querySelectorAll('.nav-link');
+  const sections = document.querySelectorAll('.anchor');
+
+  function setActive() {
+    let current = '';
+    sections.forEach(s => {
+      if (window.scrollY >= s.offsetTop - 120) current = s.id;
+    });
+    links.forEach(l => {
+      l.classList.toggle('active', l.getAttribute('href') === '#' + current);
+    });
+  }
+
+  document.querySelector('.main').addEventListener('scroll', setActive);
+  setActive();
+</script>
+</body>
+</html>

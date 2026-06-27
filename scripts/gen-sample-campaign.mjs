@@ -1,0 +1,278 @@
+// scripts/gen-sample-campaign.mjs
+// Generates a realistic CampaignExport JSON (version "1") for testing /import.
+// Uses ONLY real SRD slugs verified to exist in the seeded DB so FK-backed
+// fields (spellSlug, itemSlug) import cleanly. Run: node scripts/gen-sample-campaign.mjs
+import { writeFileSync } from "node:fs";
+
+const J = (o) => JSON.stringify(o); // helper for the JSON-string columns
+
+// ---- standard stat-block defaults shared by all characters ----------------
+function char(over) {
+  return {
+    isNpc: false,
+    subraceSlug: null,
+    subclassSlug: null,
+    backgroundSlug: null,
+    abilityMethod: "standard-array",
+    proficiencyBonus: 3,
+    tempHp: 0,
+    speed: 30,
+    spellSlotsJson: J({}),
+    spellSlotsUsedJson: J({}),
+    conditionsJson: J([]),
+    overridesJson: J([]),
+    currencyJson: J({ gp: 50, sp: 0, cp: 0 }),
+    notes: null,
+    spells: [],
+    items: [],
+    ...over,
+  };
+}
+
+const fighter = char({
+  name: "ธอริน ไอรอนฟิสต์",
+  raceSlug: "dwarf", subraceSlug: "hill-dwarf",
+  classSlug: "fighter", subclassSlug: "champion",
+  backgroundSlug: "soldier",
+  level: 5,
+  str: 16, dex: 13, con: 16, int: 8, wis: 12, cha: 10,
+  baseAbilitiesJson: J({ str: 15, dex: 13, con: 14, int: 8, wis: 12, cha: 10 }),
+  maxHp: 49, currentHp: 49, ac: 18, initiative: 1,
+  savesJson: J({ str: true, dex: false, con: true, int: false, wis: false, cha: false }),
+  skillsJson: J({ Athletics: true, Intimidation: true, Perception: true }),
+  currencyJson: J({ gp: 120, sp: 5, cp: 0 }),
+  notes: "อดีตทหารองครักษ์แห่งเนเวอร์วินเทอร์ ออกตามหาผู้ที่ฆ่าผู้กอง",
+  items: [
+    { itemSlug: "chain-mail", quantity: 1, equipped: true, attuned: false },
+    { itemSlug: "longsword", quantity: 1, equipped: true, attuned: false },
+    { itemSlug: "shield", quantity: 1, equipped: true, attuned: false },
+    { itemSlug: "battleaxe", quantity: 1, equipped: false, attuned: false },
+    { itemSlug: "potion-of-healing", quantity: 3, equipped: false, attuned: false },
+  ],
+});
+
+const cleric = char({
+  name: "ไลรา มูนวิสเปอร์",
+  raceSlug: "elf", subraceSlug: "high-elf",
+  classSlug: "cleric", subclassSlug: "life",
+  backgroundSlug: "acolyte",
+  level: 5,
+  str: 10, dex: 14, con: 14, int: 11, wis: 17, cha: 13,
+  baseAbilitiesJson: J({ str: 10, dex: 13, con: 14, int: 11, wis: 15, cha: 12 }),
+  maxHp: 38, currentHp: 31, ac: 18, initiative: 2,
+  savesJson: J({ str: false, dex: false, con: false, int: false, wis: true, cha: true }),
+  skillsJson: J({ Medicine: true, Religion: true, Insight: true, Persuasion: true }),
+  spellSlotsJson: J({ 1: 4, 2: 3, 3: 2 }),
+  spellSlotsUsedJson: J({ 1: 1, 2: 0, 3: 0 }),
+  currencyJson: J({ gp: 80, sp: 10, cp: 0 }),
+  notes: "นักบวชแห่งเทพีแสงจันทร์ เซลูเน — ผู้รักษาของกลุ่ม",
+  spells: [
+    { spellSlug: "guidance", known: true, prepared: true },
+    { spellSlug: "sacred-flame", known: true, prepared: true },
+    { spellSlug: "cure-wounds", known: true, prepared: true },
+    { spellSlug: "healing-word", known: true, prepared: true },
+    { spellSlug: "bless", known: true, prepared: true },
+    { spellSlug: "shield", known: true, prepared: false },
+  ],
+  items: [
+    { itemSlug: "scale-mail", quantity: 1, equipped: true, attuned: false },
+    { itemSlug: "shield", quantity: 1, equipped: true, attuned: false },
+    { itemSlug: "mace", quantity: 1, equipped: true, attuned: false },
+  ],
+});
+
+const bard = char({
+  name: "ฟินน์ ควิกฟิงเกอร์",
+  raceSlug: "halfling", subraceSlug: "lightfoot-halfling",
+  classSlug: "bard", subclassSlug: "lore",
+  backgroundSlug: "charlatan",
+  level: 5,
+  str: 8, dex: 16, con: 13, int: 12, wis: 10, cha: 17,
+  baseAbilitiesJson: J({ str: 8, dex: 15, con: 13, int: 12, wis: 10, cha: 15 }),
+  maxHp: 33, currentHp: 33, ac: 15, initiative: 3,
+  savesJson: J({ str: false, dex: true, con: false, int: false, wis: false, cha: true }),
+  skillsJson: J({ Acrobatics: true, Deception: true, Performance: true, SleightOfHand: true, Persuasion: true }),
+  spellSlotsJson: J({ 1: 4, 2: 3, 3: 2 }),
+  spellSlotsUsedJson: J({ 1: 2, 2: 1, 3: 0 }),
+  currencyJson: J({ gp: 200, sp: 0, cp: 30 }),
+  notes: "นักต้มตุ๋นเจ้าเสน่ห์ ลิ้นทองคำแก้ปัญหาได้ทุกสถานการณ์",
+  spells: [
+    { spellSlug: "vicious-mockery", known: true, prepared: true },
+    { spellSlug: "healing-word", known: true, prepared: true },
+    { spellSlug: "thunderwave", known: true, prepared: true },
+    { spellSlug: "misty-step", known: true, prepared: true },
+    { spellSlug: "bless", known: true, prepared: true },
+  ],
+  items: [
+    { itemSlug: "studded-leather-armor", quantity: 1, equipped: true, attuned: false },
+    { itemSlug: "rapier", quantity: 1, equipped: true, attuned: false },
+    { itemSlug: "dagger", quantity: 2, equipped: false, attuned: false },
+  ],
+});
+
+const barbarian = char({
+  name: "กริมจอว์",
+  raceSlug: "human", subraceSlug: null,
+  classSlug: "barbarian", subclassSlug: "berserker",
+  backgroundSlug: "criminal",
+  level: 5,
+  str: 17, dex: 14, con: 16, int: 8, wis: 12, cha: 10,
+  baseAbilitiesJson: J({ str: 15, dex: 13, con: 14, int: 8, wis: 12, cha: 10 }),
+  maxHp: 55, currentHp: 42, ac: 16, initiative: 2,
+  savesJson: J({ str: true, dex: false, con: true, int: false, wis: false, cha: false }),
+  skillsJson: J({ Athletics: true, Survival: true, Intimidation: true, Perception: true }),
+  conditionsJson: J([]),
+  currencyJson: J({ gp: 35, sp: 0, cp: 0 }),
+  notes: "อดีตนักล่าค่าหัว โกรธเมื่อไหร่หยุดไม่ได้",
+  items: [
+    { itemSlug: "greatclub", quantity: 1, equipped: true, attuned: false },
+    { itemSlug: "handaxe", quantity: 2, equipped: false, attuned: false },
+    { itemSlug: "javelin", quantity: 4, equipped: false, attuned: false },
+  ],
+});
+
+// ---- NPC stat block (not tied to any player) ------------------------------
+const npcVillain = char({
+  isNpc: true,
+  name: "ลอร์ดเวกซ์ ผู้ทรยศ",
+  raceSlug: "human", subraceSlug: null,
+  classSlug: "fighter", subclassSlug: "champion",
+  backgroundSlug: "noble",
+  level: 8,
+  str: 16, dex: 14, con: 15, int: 13, wis: 11, cha: 16,
+  baseAbilitiesJson: J({ str: 16, dex: 14, con: 15, int: 13, wis: 11, cha: 16 }),
+  maxHp: 84, currentHp: 84, ac: 19, initiative: 2,
+  proficiencyBonus: 3,
+  savesJson: J({ str: true, dex: false, con: true, int: false, wis: false, cha: false }),
+  skillsJson: J({ Intimidation: true, Persuasion: true, Deception: true }),
+  currencyJson: J({ gp: 500, sp: 0, cp: 0 }),
+  notes: "บอสหลักขององก์ที่ 1 — ผู้กองที่ทรยศและฆ่าผู้บังคับบัญชา",
+  items: [
+    { itemSlug: "chain-mail", quantity: 1, equipped: true, attuned: false },
+    { itemSlug: "longsword", quantity: 1, equipped: true, attuned: false },
+    { itemSlug: "shield", quantity: 1, equipped: true, attuned: false },
+  ],
+});
+
+// ---- story ----------------------------------------------------------------
+const story = {
+  sessions: [
+    {
+      title: "องก์ 1 — เงาเหนือเนเวอร์วินเทอร์",
+      date: "2026-05-10T19:00:00.000Z",
+      summary: "กลุ่มผู้กล้าพบกันที่โรงเตี๊ยม The Sleeping Dragon ได้รับมอบหมายให้สืบคดีการหายตัวของพ่อค้า ปะทะกับโจรกอบลินในตรอกมืด",
+      xpAwarded: 450,
+      notableLoot: "แผนที่ลับนำไปสู่ถ้ำโจร, เหรียญทอง 80 gp",
+    },
+    {
+      title: "องก์ 2 — ถ้ำหมาป่าเลือด",
+      date: "2026-05-24T19:00:00.000Z",
+      summary: "บุกถ้ำโจร เผชิญฮอบกอบลินและบักแบร์ ช่วยพ่อค้าที่ถูกจับเป็นตัวประกัน พบหลักฐานชี้ไปที่ลอร์ดเวกซ์",
+      xpAwarded: 700,
+      notableLoot: "ดาบยาวเวทมนตร์ +1, โพชั่นฟื้นพลัง 3 ขวด",
+    },
+  ],
+  quests: [
+    {
+      name: "ตามหาพ่อค้าที่หายตัว",
+      description: "พ่อค้าผ้าไหม มาร์คัส หายตัวไปกลางทาง ครอบครัวว่าจ้างให้ตามหา",
+      giverName: "เลดี้เอเลน่า",
+      status: "completed",
+      objectivesJson: J([
+        { text: "สืบหาเบาะแสที่ตลาด", checked: true },
+        { text: "ตามรอยไปยังถ้ำโจร", checked: true },
+        { text: "ช่วยมาร์คัสกลับมา", checked: true },
+      ]),
+      reward: "300 gp และมิตรภาพกับสมาคมพ่อค้า",
+    },
+    {
+      name: "เปิดโปงลอร์ดเวกซ์",
+      description: "หลักฐานชี้ว่าลอร์ดเวกซ์อยู่เบื้องหลังขบวนการลักพาตัว ต้องหาหลักฐานมัดตัว",
+      giverName: "กัปตันยาม โรแลนด์",
+      status: "active",
+      objectivesJson: J([
+        { text: "รวบรวมหลักฐานจากถ้ำโจร", checked: true },
+        { text: "แทรกซึมเข้างานเลี้ยงของลอร์ดเวกซ์", checked: false },
+        { text: "นำตัวลอร์ดเวกซ์เข้าสู่กระบวนการยุติธรรม", checked: false },
+      ]),
+      reward: "ตำแหน่งอัศวินและที่ดิน",
+    },
+    {
+      name: "ดาบเก่าของบรรพบุรุษ",
+      description: "ธอรินตามหาดาบประจำตระกูลที่สูญหายไปเมื่อ 100 ปีก่อน",
+      giverName: null,
+      status: "active",
+      objectivesJson: J([
+        { text: "หาเบาะแสในหอจดหมายเหตุคนแคระ", checked: false },
+      ]),
+      reward: null,
+    },
+  ],
+  npcs: [
+    { name: "เลดี้เอเลน่า", role: "ผู้ว่าจ้าง", faction: "สมาคมพ่อค้า", notes: "แม่ม่ายผู้มั่งคั่ง ใจดีแต่มีความลับ", isAlive: true },
+    { name: "กัปตันยาม โรแลนด์", role: "พันธมิตร", faction: "ยามเมือง", notes: "ซื่อสัตย์ต่อหน้าที่ ไม่ไว้ใจลอร์ดเวกซ์", isAlive: true },
+    { name: "มาร์คัส", role: "ผู้ถูกช่วยเหลือ", faction: "สมาคมพ่อค้า", notes: "พ่อค้าผ้าไหมที่ถูกลักพาตัว ตอนนี้ปลอดภัยแล้ว", isAlive: true },
+    { name: "กรอตนาร์", role: "ศัตรู", faction: "โจรกอบลิน", notes: "หัวหน้าโจรในถ้ำ ถูกปราบแล้ว", isAlive: false },
+  ],
+  journal: [
+    {
+      title: "ปริศนาตราสัญลักษณ์",
+      content: "เราพบตราสัญลักษณ์รูปงูพันดาบบนเสื้อคลุมของโจร เหมือนกับตราประจำตระกูลของลอร์ดเวกซ์ทุกประการ บังเอิญ? ไม่น่าจะใช่",
+    },
+    {
+      title: "รายชื่อที่ต้องระวัง",
+      content: "1. ลอร์ดเวกซ์ — ผู้ต้องสงสัยหลัก\n2. คนสนิทของเขาที่สวมหน้ากาก\n3. พ่อค้าอาวุธหน้าใหม่ในเมือง",
+    },
+  ],
+};
+
+// ---- encounters -----------------------------------------------------------
+const encounters = [
+  {
+    name: "ซุ่มโจมตีในตรอกมืด",
+    status: "ended",
+    round: 4,
+    combatants: [
+      { type: "character", name: "ธอริน ไอรอนฟิสต์", monsterSlug: null, initiative: 14, initiativeOrder: 0, maxHp: 49, currentHp: 49, conditionsJson: J([]), removed: false },
+      { type: "character", name: "ฟินน์ ควิกฟิงเกอร์", monsterSlug: null, initiative: 19, initiativeOrder: 1, maxHp: 33, currentHp: 33, conditionsJson: J([]), removed: false },
+      { type: "monster", name: "กอบลิน #1", monsterSlug: "goblin", initiative: 12, initiativeOrder: 2, maxHp: 7, currentHp: 0, conditionsJson: J([]), removed: true },
+      { type: "monster", name: "กอบลิน #2", monsterSlug: "goblin", initiative: 10, initiativeOrder: 3, maxHp: 7, currentHp: 0, conditionsJson: J([]), removed: true },
+      { type: "monster", name: "กอบลิน #3", monsterSlug: "goblin", initiative: 8, initiativeOrder: 4, maxHp: 7, currentHp: 0, conditionsJson: J([]), removed: true },
+    ],
+  },
+  {
+    name: "ห้องโถงถ้ำหมาป่าเลือด",
+    status: "active",
+    round: 2,
+    combatants: [
+      { type: "character", name: "ธอริน ไอรอนฟิสต์", monsterSlug: null, initiative: 11, initiativeOrder: 0, maxHp: 49, currentHp: 38, conditionsJson: J([]), removed: false },
+      { type: "character", name: "ไลรา มูนวิสเปอร์", monsterSlug: null, initiative: 16, initiativeOrder: 1, maxHp: 38, currentHp: 31, conditionsJson: J([]), removed: false },
+      { type: "character", name: "กริมจอว์", monsterSlug: null, initiative: 9, initiativeOrder: 2, maxHp: 55, currentHp: 42, conditionsJson: J(["raging"]), removed: false },
+      { type: "monster", name: "ฮอบกอบลิน", monsterSlug: "hobgoblin", initiative: 13, initiativeOrder: 3, maxHp: 11, currentHp: 11, conditionsJson: J([]), removed: false },
+      { type: "monster", name: "บักแบร์", monsterSlug: "bugbear", initiative: 7, initiativeOrder: 4, maxHp: 27, currentHp: 18, conditionsJson: J([]), removed: false },
+    ],
+  },
+];
+
+// ---- assemble -------------------------------------------------------------
+const data = {
+  version: "1",
+  exportedAt: new Date().toISOString(),
+  campaign: { name: "เงาแห่งเนเวอร์วินเทอร์" },
+  players: [
+    { displayName: "Dungeon Master", role: "dm", character: null },
+    { displayName: "ธอริน", role: "player", character: fighter },
+    { displayName: "ไลรา", role: "player", character: cleric },
+    { displayName: "ฟินน์", role: "player", character: bard },
+    { displayName: "กริมจอว์", role: "player", character: barbarian },
+  ],
+  npcCharacters: [npcVillain],
+  story,
+  encounters,
+};
+
+const out = "sample-campaign.json";
+writeFileSync(out, JSON.stringify(data, null, 2), "utf8");
+console.log(`✓ wrote ${out}`);
+console.log(`  players: ${data.players.length}, npcs: ${data.npcCharacters.length}, encounters: ${data.encounters.length}`);
+console.log(`  quests: ${story.quests.length}, story-npcs: ${story.npcs.length}, sessions: ${story.sessions.length}`);
